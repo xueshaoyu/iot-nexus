@@ -1,0 +1,62 @@
+# Default: Embedded MQTT + admin UI. No extra broker required.
+#   docker compose up --build
+# Production-style (empty platform, no simulator):
+#   IoT__Demo__SeedData=false IoT__Demo__EnableSimulator=false \
+#   IoT__ApiKey=… IoT__Mqtt__AdminPassword=… docker compose up --build
+# Optional Mosquitto for External / per-device broker demos:
+#   docker compose --profile external-mqtt -f docker-compose.yml -f docker-compose.external-mqtt.yml up --build
+
+name: newlife-iot
+
+services:
+  iot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: newlife-iot-platform:latest
+    ports:
+      - "5288:5288"   # admin UI + REST / Swagger
+      - "1883:1883"   # Embedded MQTT (TCP + WebSocket /mqtt)
+    volumes:
+      - iot-data:/app/Data
+      - iot-logs:/app/Log
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:5288
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__IoT: "Data Source=/app/Data/iot.db;Cache=Shared;Default Timeout=30"
+      ConnectionStrings__IoTProvider: SQLite
+      NEWLIFE_DATAPATH: /app/Data
+      NEWLIFE_LOGPATH: /app/Log
+      IoT__Mqtt__Mode: Embedded
+      IoT__Mqtt__Port: "1883"
+      IoT__Mqtt__AdminUser: admin
+      # Existing demo default only. Override in production; never commit real secrets.
+      # IoT__Mqtt__AdminPassword: change-me
+      # IoT__ApiKey: change-me
+      IoT__Demo__SeedData: "true"
+      IoT__Demo__EnableSimulator: "true"
+      IoT__Demo__Language: zh-CN
+      # Catalog of extra brokers (unused until a device/product selects them, or Mode=External).
+      # IoT__Mqtt__Brokers__0__Id: mosquitto
+      # IoT__Mqtt__Brokers__0__Server: tcp://mosquitto:1883
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:5288/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+  # Not started by default. Enable with --profile external-mqtt (see docker-compose.external-mqtt.yml).
+  mosquitto:
+    profiles: ["external-mqtt"]
+    image: eclipse-mosquitto:2
+    ports:
+      - "1884:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+volumes:
+  iot-data:
+  iot-logs:

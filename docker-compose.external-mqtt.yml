@@ -1,0 +1,19 @@
+# Overlay: point the platform at the compose Mosquitto service.
+#   docker compose --profile external-mqtt -f docker-compose.yml -f docker-compose.external-mqtt.yml up --build
+#
+# Mode=External makes Mosquitto the platform default. Devices can still be assigned to embedded.
+# The in-process simulator connects to tcp://mosquitto:1883 (compose DNS).
+# From the host, devices use tcp://localhost:1884 (published Mosquitto port).
+
+services:
+  iot:
+    environment:
+      IoT__Mqtt__Mode: External
+      IoT__Mqtt__ActiveBroker: mosquitto
+      IoT__Mqtt__Brokers__0__Id: mosquitto
+      IoT__Mqtt__Brokers__0__Name: Compose Mosquitto
+      IoT__Mqtt__Brokers__0__Server: tcp://mosquitto:1883
+      IoT__Mqtt__Brokers__0__PublicServer: tcp://localhost:1884
+      IoT__Mqtt__Brokers__0__ClientId: newlife-iot-platform
+    depends_on:
+      - mosquitto

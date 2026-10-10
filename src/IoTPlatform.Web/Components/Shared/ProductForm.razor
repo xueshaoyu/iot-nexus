@@ -1,0 +1,102 @@
+@using IoTPlatform.Protocols.Codecs
+@using IoTPlatform.Protocols.Drivers
+@inject PayloadCodecFactory Codecs
+
+<EditForm Model="Model" OnValidSubmit="OnSubmit" id="@FormId">
+    <LocalizedValidator />
+    <ValidationSummary class="validation-errors" />
+    <div class="form-grid">
+        <div class="field">
+            <label>@L["Name *"]</label>
+            <InputText class="input" @bind-Value="Model.Name" placeholder="@L["e.g. Environment Sensor"]" />
+        </div>
+        <div class="field">
+            <label>@L["Product key"]</label>
+            <InputText class="input mono" @bind-Value="Model.Code" placeholder="@L["auto-generated if empty"]" />
+            <span class="hint">@L["Used in MQTT topics: iot/<key>/<device>/…"]</span>
+        </div>
+        <div class="field">
+            <label>@L["Category"]</label>
+            <InputText class="input" @bind-Value="Model.Category" placeholder="@L["Sensor, Meter, Gateway…"]" />
+        </div>
+        <div class="field">
+            <label>@L["Access protocol *"]</label>
+            <InputSelect class="select" @bind-Value="Model.Protocol">
+                <option value="@AccessProtocols.Mqtt">@L["MQTT — devices publish to the built-in broker"]</option>
+                <option value="@AccessProtocols.Http">@L["HTTP — devices call the REST access API"]</option>
+                <option value="@AccessProtocols.Driver">@L["Driver — platform polls via NewLife.IoT driver"]</option>
+            </InputSelect>
+        </div>
+
+        @if (Model.Protocol == AccessProtocols.Driver)
+        {
+            <div class="field">
+                <label>@L["Driver *"]</label>
+                <InputSelect class="select" @bind-Value="Model.DriverName">
+                    <option value="">@L["Select a driver…"]</option>
+                    @foreach (var d in DriverRegistry.Drivers)
+                    {
+                        <option value="@d.Name">@d.Name — @d.DisplayName</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="field">
+                <label>@L["Poll interval (ms)"]</label>
+                <InputNumber class="input" @bind-Value="Model.PollInterval" />
+                <span class="hint">@L["0 = platform default"]</span>
+            </div>
+            <div class="field full">
+                <div class="row-between">
+                    <label>@L["Driver parameters (JSON)"]</label>
+                    @if (Template != null)
+                    {
+                        <button type="button" class="btn btn-sm btn-ghost" @onclick="() => Model.DriverParameter = Template">@L["Use driver template"]</button>
+                    }
+                </div>
+                <InputTextArea class="input" rows="4" @bind-Value="Model.DriverParameter" placeholder='{"Server":"127.0.0.1:502","Host":1}' />
+                <span class="hint">@L["Default parameters for all devices of this product. Devices can override individual keys."]</span>
+            </div>
+        }
+        else
+        {
+            <div class="field">
+                <label>@L["Payload codec"]</label>
+                <InputSelect class="select" @bind-Value="Model.Codec">
+                    @foreach (var c in Codecs.Codecs)
+                    {
+                        <option value="@c.Name">@c.Name</option>
+                    }
+                </InputSelect>
+                <span class="hint">@L[Codecs.Get(Model.Codec).Description]</span>
+            </div>
+            @if (Model.Protocol == AccessProtocols.Mqtt)
+            {
+                <div class="field full">
+                    <label>@L["Default MQTT broker"]</label>
+                    <BrokerSelect @bind-Value="Model.BrokerProfileId" InheritLabel="@L["platform default"]" Hint="@L["New MQTT devices inherit this broker. A device can still pick a different profile."]" />
+                </div>
+            }
+        }
+
+        <div class="field">
+            <label>@L["Offline timeout (s)"]</label>
+            <InputNumber class="input" @bind-Value="Model.OnlineTimeout" />
+            <span class="hint">@L["No heartbeat/data for this long → offline. 0 = global default."]</span>
+        </div>
+        <div class="field" style="justify-content:flex-end">
+            <label class="check"><InputCheckbox @bind-Value="Model.Enable" /> @L["Enabled"]</label>
+        </div>
+        <div class="field full">
+            <label>@L["Description"]</label>
+            <InputTextArea class="input" style="font-family:var(--font);min-height:60px" @bind-Value="Model.Remark" />
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public ProductInput Model { get; set; } = new();
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public string FormId { get; set; } = "product-form";
+
+    private string? Template => DriverRegistry.Drivers.FirstOrDefault(e => e.Name == Model.DriverName)?.DefaultParameter;
+}

@@ -1,0 +1,286 @@
+@page "/protocols"
+@inherits PlatformPage
+@using IoTPlatform.Mqtt
+@using IoTPlatform.Protocols
+@using IoTPlatform.Protocols.Codecs
+@using IoTPlatform.Protocols.Drivers
+@inject IMqttTransport Mqtt
+@inject MqttServerHost EmbeddedMqtt
+@inject PayloadCodecFactory Codecs
+@inject DriverHostService DriverHost
+@inject Microsoft.Extensions.Options.IOptions<IoTPlatform.IoTOptions> Options
+
+<PageTitle>@L["Protocols & MQTT"] · @L["NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Protocols & MQTT"]</h1>
+        <p>@L["Built-in NewLife.MQTT broker, HTTP access API and NewLife.IoT protocol drivers — three ways for devices to reach the platform."]</p>
+    </div>
+</div>
+
+<div class="grid grid-4 mb">
+    <StatCard Label="@L["MQTT brokers"]" Value="@($"{_brokers.Count(e => e.Running)} / {_brokers.Count}")" Sub="@L["{0} in use · default {1}", _brokers.Count(e => e.InUse), DefaultBroker]" IconName="radio" Tone="@(_brokers.Any(e => e.Running) ? "success" : "danger")" />
+    <StatCard Label="@L["Connected clients"]" Value="@_embedded.ConnectedClients.ToString()" Sub="@L["embedded broker · {0} total connections", _embedded.TotalConnections]" IconName="wifi" Tone="primary" />
+    <StatCard Label="@L["Messages in / out"]" Value="@($"{Fmt.Number(_brokers.Sum(e => e.MessagesReceived))} / {Fmt.Number(_brokers.Sum(e => e.MessagesSent))}")" Sub="@L["across all connected brokers"]" IconName="message" Tone="info" />
+    <StatCard Label="@L["Driver workers"]" Value="@_workers.Count.ToString()" Sub="@L["{0} healthy", _workers.Count(e => e.Failures == 0)]" IconName="server" Tone="warning" />
+</div>
+
+<div class="tabs">
+    <button class="tab @Active("mqtt")" @onclick='() => _tab = "mqtt"'>@L["MQTT broker"]</button>
+    <button class="tab @Active("drivers")" @onclick='() => _tab = "drivers"'>@L["Drivers"] <span class="badge">@DriverRegistry.Drivers.Count</span></button>
+    <button class="tab @Active("http")" @onclick='() => _tab = "http"'>@L["HTTP access"]</button>
+    <button class="tab @Active("codecs")" @onclick='() => _tab = "codecs"'>@L["Codecs"]</button>
+</div>
+
+@switch (_tab)
+{
+    case "mqtt":
+        <div class="card mb">
+            <div class="card-header">
+                <h3>@L["MQTT server"] <span class="sub">@L["devices pick a broker; the platform may connect to several at once"]</span></h3>
+                <span class="badge @(IsExternal ? "warning" : "primary")">@(IsExternal ? L["Default: external"] : L["Default: embedded"])</span>
+            </div>
+            <div class="card-body">
+                <dl class="kv">
+                    <dt>@L["Mode"]</dt><dd class="mono">IoT:Mqtt:Mode = @(IsExternal ? MqttModes.External : MqttModes.Embedded)</dd>
+                    <dt>@L["platform default"]</dt><dd><span class="mono">@DefaultBroker</span> <span class="muted">@L["used when a device and its product leave the broker unset"]</span></dd>
+                    <dt>@L["Topic root"]</dt><dd class="mono">@Topics.Root</dd>
+                </dl>
+                <div class="alert-banner mt"><Icon Name="layers" Size="16" /> <span>@L["Assign a broker on the product (default for new devices) or on each device. Embedded stays selectable. External profiles in IoT:Mqtt:Brokers are the other options. The platform starts Embedded when any device uses it (or Mode=Embedded), and opens a client to each external profile that has an enabled MQTT device or is the platform default."]</span></div>
+                <h4 class="mt" style="margin-bottom:8px">@L["Broker profiles"] <span class="muted small" style="font-weight:400">@L["connection state and how many enabled MQTT devices resolve here"]</span></h4>
+                <div class="table-wrap">
+                    <table class="table compact">
+                        <thead><tr><th>@L["Id"]</th><th>@L["Name"]</th><th>@L["Server"]</th><th class="hide-sm">@L["Topic root"]</th><th>@L["Devices"]</th><th>@L["Status"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var b in _brokers)
+                            {
+                                var profile = Options.Value.Mqtt.FindBroker(b.Id);
+                                <tr>
+                                    <td class="mono">@b.Id @if (b.Id == DefaultBroker) { <span class="badge">@L["default"]</span> }</td>
+                                    <td>@(b.Kind == MqttModes.Embedded ? L["Embedded (built-in)"] : b.Name)</td>
+                                    <td class="mono small">@b.Server @(profile?.UseTls == true ? "(TLS)" : "") @if (profile != null && !profile.Password.IsNullOrEmpty()) { <span class="muted">· ••••</span> }</td>
+                                    <td class="hide-sm mono small">@b.TopicRoot</td>
+                                    <td>@b.DeviceCount</td>
+                                    <td class="nowrap">
+                                        @if (b.Running)
+                                        {
+                                            <span class="badge success"><span class="dot on"></span>@L["connected"]</span>
+                                        }
+                                        else if (b.InUse)
+                                        {
+                                            <span class="badge danger"><span class="dot off"></span>@L["disconnected"]</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge">@L["idle"]</span>
+                                        }
+                                        @if (!b.LastError.IsNullOrEmpty() && !b.Running)
+                                        {
+                                            <span class="sub">@Fmt.Text(b.LastError)</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <p class="hint small" style="margin:8px 0 0">@L["Broker profiles are configured in IoT:Mqtt:Brokers. Passwords are never shown. Device assignment is edited on the product or device page."]</p>
+            </div>
+        </div>
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header"><h3>@L["Topic conventions"]</h3></div>
+                <div class="card-body">
+                    <table class="table compact">
+                        <thead><tr><th>@L["Direction"]</th><th>@L["Topic"]</th><th>@L["Payload (Json codec)"]</th></tr></thead>
+                        <tbody>
+                            <tr><td><span class="badge primary">@L["up"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/property/post</td><td class="mono small">{"temperature":25.1}</td></tr>
+                            <tr><td><span class="badge primary">@L["up"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/event/post</td><td class="mono small">{"type":"alert","name":"overheat","remark":"…"}</td></tr>
+                            <tr><td><span class="badge primary">@L["up"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/service/reply</td><td class="mono small">{"id":123,"status":2,"data":"ok"}</td></tr>
+                            <tr><td><span class="badge primary">@L["up"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/heartbeat</td><td class="mono small">@L["any (PINGREQ also counts)"]</td></tr>
+                            <tr><td><span class="badge primary">@L["up"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/status</td><td class="mono small">online / offline @L["(retained, use as last will)"]</td></tr>
+                            <tr><td><span class="badge warning">@L["down"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/service/invoke</td><td class="mono small">{"id":123,"name":"reboot","params":{}}</td></tr>
+                            <tr><td><span class="badge warning">@L["down"]</span></td><td class="mono small">@(Topics.Root)/{pk}/{dc}/property/set</td><td class="mono small">{"id":124,"params":{"switch":true}}</td></tr>
+                        </tbody>
+                    </table>
+                    <dl class="kv mt">
+                        <dt>@L["Device login"]</dt><dd>@L["username = device code, password = device secret"] @L["(embedded broker)"]</dd>
+                        <dt>@L["Admin login"]</dt><dd>@(Options.Value.Mqtt.AdminUser.IsNullOrEmpty() ? L["Disabled"] : L["{0} — may subscribe to iot/# and alerts/#", Options.Value.Mqtt.AdminUser])</dd>
+                        <dt>@L["ACL"]</dt><dd>@L["On the embedded broker, devices may only publish their own uplink topics and subscribe under {0}. External brokers enforce their own ACLs.", $"{Topics.Root}/{{pk}}/{{dc}}/"]</dd>
+                    </dl>
+                </div>
+            </div>
+            <div class="stack">
+                @if (_embedded.Running)
+                {
+                <div class="card">
+                    <div class="card-header"><h3>@L["Connected clients"]</h3><span class="muted small">@_embedded.Clients.Count · @L["embedded"]</span></div>
+                    <div class="card-body">
+                        @if (_embedded.Clients.Count == 0)
+                        {
+                            <EmptyState Title="@L["No clients connected"]" IconName="wifi-off" />
+                        }
+                        else
+                        {
+                            <div class="row">
+                                @foreach (var c in _embedded.Clients.OrderBy(e => e))
+                                {
+                                    var device = Device.FindByCode(c);
+                                    @if (device != null)
+                                    {
+                                        <a class="badge success" href="devices/@device.Id"><span class="dot on"></span>@c</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge"><span class="dot"></span>@c</span>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                }
+                <div class="card">
+                    <div class="card-header"><h3>@L["Subscriptions"]</h3><span class="muted small">@L["{0} topic filters", _embedded.Subscriptions.Count + _brokers.Where(e => e.Kind == MqttModes.External && e.Running).Sum(_ => 1)]</span></div>
+                    <div class="card-body flush" style="max-height:340px;overflow:auto">
+                        <table class="table compact">
+                            <tbody>
+                                @foreach (var (topic, count) in _embedded.Subscriptions.OrderBy(e => e.Key))
+                                {
+                                    <tr><td class="mono small">@topic</td><td class="right small">@count</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        break;
+
+    case "drivers":
+        <div class="stack">
+            <div class="card">
+                <div class="card-header"><h3>@L["Registered NewLife.IoT drivers"]</h3><span class="muted small">@L["discovered via DriverFactory.ScanAll()"]</span></div>
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead><tr><th>@L["Name"]</th><th>@L["Description"]</th><th class="hide-sm">@L["Class"]</th><th>@L["Default parameters"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var d in DriverRegistry.Drivers)
+                            {
+                                <tr>
+                                    <td><strong class="mono">@d.Name</strong><span class="sub">v@(d.Version)</span></td>
+                                    <td>@(d.DisplayName == null ? "" : L[d.DisplayName])<span class="sub">@(d.Description == null ? "" : L[d.Description])</span></td>
+                                    <td class="hide-sm mono small">@d.ClassName</td>
+                                    <td class="mono small" style="max-width:360px;word-break:break-all">@d.DefaultParameter</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3>@L["Polling workers"]</h3><span class="muted small">@L["one per enabled Driver-protocol device · reconciled every 10s"]</span></div>
+                @if (_workers.Count == 0)
+                {
+                    <EmptyState Title="@L["No driver devices running"]" Text="@L["Create a product with protocol “Driver” and register devices."]" IconName="server" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>@L["Device"]</th><th>@L["Driver"]</th><th>@L["Points"]</th><th>@L["Interval"]</th><th>@L["Last read"]</th><th>@L["Health"]</th></tr></thead>
+                            <tbody>
+                                @foreach (var w in _workers)
+                                {
+                                    <tr>
+                                        <td><a class="title" href="devices/@w.DeviceId">@w.DeviceCode</a></td>
+                                        <td class="mono">@w.Driver</td>
+                                        <td>@w.Points</td>
+                                        <td>@w.Interval ms</td>
+                                        <td class="small"><span class="ago">@Fmt.Ago(w.LastRead)</span></td>
+                                        <td>
+                                            @if (w.Failures == 0)
+                                            {
+                                                <span class="badge success">@L["healthy"]</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge danger">@L["{0} failure(s)", w.Failures]</span><span class="sub">@w.LastError</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="alert-banner"><Icon Name="layers" Size="16" /> <span>@L["Add a protocol by referencing a NewLife.IoT driver package (e.g. NewLife.Siemens, NewLife.IoTSocket) or implementing IDriver / DriverBase<TNode,TParameter> with a [Driver(\"Name\")] attribute. It is discovered at startup and becomes selectable on products."]</span></div>
+        </div>
+        break;
+
+    case "http":
+        <div class="card">
+            <div class="card-header"><h3>@L["Device HTTP access API"]</h3><a class="btn btn-sm" href="swagger" target="_blank">@L["Open Swagger"]</a></div>
+            <div class="card-body">
+                <p class="text-2" style="margin-top:0">@L["For products with protocol HTTP. Authenticate with header X-Device-Secret. Payloads use the product codec, exactly like MQTT."]</p>
+                <pre class="code-block">POST /api/device-access/{code}/properties   {"temperature":25.1,"humidity":60}
+POST /api/device-access/{code}/events       {"type":"alert","name":"overheat","remark":"..."}
+POST /api/device-access/{code}/heartbeat
+GET  /api/device-access/{code}/commands     → pending service calls / property writes
+POST /api/device-access/{code}/reply        {"id":123,"status":2,"data":"ok"}
+
+curl -X POST @(Nav.BaseUri)api/device-access/http-gw-001/properties \
+  -H 'X-Device-Secret: http-gw-001-secret' -H 'Content-Type: application/json' \
+  -d '{"temperature":21.5,"humidity":48,"battery":90}'</pre>
+            </div>
+        </div>
+        break;
+
+    default:
+        <div class="card">
+            <div class="card-header"><h3>@L["Payload codecs"]</h3><span class="muted small">@L["implement IPayloadCodec to add formats"]</span></div>
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>@L["Name"]</th><th>@L["Description"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in Codecs.Codecs)
+                        {
+                            <tr><td class="mono"><strong>@c.Name</strong></td><td>@L[c.Description]</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    private string _tab = "mqtt";
+    private MqttStatus _status = default!;
+    private MqttStatus _embedded = default!;
+    private IReadOnlyList<MqttBrokerSnapshot> _brokers = [];
+    private IReadOnlyList<DriverWorkerStatus> _workers = [];
+
+    private string Active(string tab) => _tab == tab ? "active" : "";
+    private bool IsExternal => Options.Value.Mqtt.IsExternal;
+    private string DefaultBroker => Catalog.PlatformDefaultId;
+    private string Host => new Uri(Nav.BaseUri).Host;
+
+    [Inject] private MqttBrokerCatalog Catalog { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(3), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _status = Mqtt.GetStatus();
+        _embedded = EmbeddedMqtt.GetStatus();
+        _brokers = Mqtt.GetBrokers();
+        _workers = DriverHost.GetStatus();
+    }
+}

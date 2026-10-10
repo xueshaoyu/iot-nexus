@@ -1,0 +1,123 @@
+@page "/stats"
+@inherits PlatformPage
+@inject StatService Stats
+
+<PageTitle>@L["Statistics · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Statistics"]</h1>
+        <p>@L["Device counts, online rate and message volume, aggregated per hour and per day (DeviceStat table, flushed every minute)."]</p>
+    </div>
+    <div class="actions">
+        <select class="select" style="width:auto" @bind="_productId" @bind:after="Load">
+            <option value="0">@L["Whole platform"]</option>
+            @foreach (var p in Product.FindAll())
+            {
+                <option value="@p.Id">@p.Name</option>
+            }
+        </select>
+        <select class="select" style="width:auto" @bind="RangeKey">
+            <option value="h24">@L["Last 24 hours"]</option>
+            <option value="h72">@L["Last 72 hours"]</option>
+            <option value="d7">@L["Last 7 days"]</option>
+            <option value="d30">@L["Last 30 days"]</option>
+        </select>
+    </div>
+</div>
+
+@if (_overview != null)
+{
+    <div class="grid grid-4 mb">
+        <StatCard Label="@L["Online rate"]" Value="@($"{_overview.OnlineRate:0.#}%")" Sub="@L["{0} of {1} devices", _overview.OnlineDevices, _overview.Devices]" IconName="wifi" Tone="success" />
+        <StatCard Label="@L["Active today"]" Value="@_overview.ActiveToday.ToString()" Sub="@L["{0} registered today", _overview.NewToday]" IconName="activity" Tone="primary" />
+        <StatCard Label="@L["Messages in range"]" Value="@Fmt.Number(_trend.Sum(e => e.Messages))" Sub="@(_level == StatLevels.Hour ? L["peak {0} per hour", Fmt.Number(_trend.Count == 0 ? 0 : _trend.Max(e => e.Messages))] : L["peak {0} per day", Fmt.Number(_trend.Count == 0 ? 0 : _trend.Max(e => e.Messages))])" IconName="message" Tone="info" />
+        <StatCard Label="@L["Alarms in range"]" Value="@_trend.Sum(e => e.Alarms).ToString()" Sub="@L["{0} downlink commands", _trend.Sum(e => e.Downlinks)]" IconName="bell" Tone="warning" />
+    </div>
+}
+
+<div class="card mb">
+    <div class="card-header"><h3>@L["Trend"] <span class="sub">@(_productId == 0 ? L["All products"] : Product.FindById(_productId)?.Name)</span></h3></div>
+    <div class="card-body"><TrendChart Points="_trend" Level="_level" /></div>
+</div>
+
+<div class="grid grid-2">
+    <div class="card">
+        <div class="card-header"><h3>@L["By product"]</h3><span class="muted small">@L["today"]</span></div>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>@L["Product"]</th><th class="right">@L["Devices"]</th><th>@L["Online"]</th><th class="right">@L["Messages"]</th></tr></thead>
+                <tbody>
+                    @foreach (var p in _products)
+                    {
+                        <tr>
+                            <td><a class="title" href="products/@p.ProductId">@p.ProductName</a><span class="sub"><span class="badge @Fmt.ProtocolTone(p.Protocol)" style="height:18px">@Fmt.Text(p.Protocol)</span></span></td>
+                            <td class="right">@p.Devices</td>
+                            <td style="width:170px">
+                                <div class="row-between small text-2"><span>@L["{0} online", p.Online]</span><span>@p.OnlineRate.ToString("0.#")%</span></div>
+                                <div class="progress" style="margin-top:4px"><span style="width:@p.OnlineRate.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></span></div>
+                            </td>
+                            <td class="right mono">@p.MessagesToday.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header"><h3>@L["Buckets"]</h3><span class="muted small">@L["raw aggregation rows"]</span></div>
+        <div class="table-wrap" style="max-height:420px;overflow:auto">
+            <table class="table compact">
+                <thead><tr><th>@(_level == StatLevels.Hour ? L["Hour"] : L["Day"])</th><th class="right">@L["Devices"]</th><th class="right">@L["Peak online"]</th><th class="right">@L["Active"]</th><th class="right">@L["Messages"]</th><th class="right">@L["Alarms"]</th></tr></thead>
+                <tbody>
+                    @foreach (var t in _trend.Reverse())
+                    {
+                        <tr>
+                            <td class="small nowrap">@t.Time.ToString(_level == StatLevels.Hour ? "MM-dd HH:00" : "yyyy-MM-dd")</td>
+                            <td class="right">@t.Total</td>
+                            <td class="right">@t.Online</td>
+                            <td class="right">@t.Actives</td>
+                            <td class="right mono">@t.Messages.ToString("N0")</td>
+                            <td class="right">@t.Alarms</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private StatOverview? _overview;
+    private IList<TrendPoint> _trend = [];
+    private IList<ProductStat> _products = [];
+    private int _productId;
+    private StatLevels _level = StatLevels.Hour;
+    private int _count = 24;
+    private string _range = "h24";
+
+    private string RangeKey
+    {
+        get => _range;
+        set
+        {
+            _range = value;
+            _level = value.StartsWith('h') ? StatLevels.Hour : StatLevels.Day;
+            _count = int.Parse(value[1..]);
+            Load();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(10), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _overview = Stats.GetOverview();
+        _trend = Stats.GetTrend(_level, _count, _productId);
+        _products = Stats.GetProductStats();
+    }
+}

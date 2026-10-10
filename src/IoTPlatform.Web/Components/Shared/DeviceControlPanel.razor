@@ -1,0 +1,304 @@
+@* 单设备控制面板：可写属性、服务调用、指令状态实时刷新 *@
+@implements IDisposable
+@inject DeviceCommandService Commands
+@inject ProductService Products
+@inject DeviceService Devices
+@inject ToastService Toasts
+
+@if (_device == null)
+{
+    <Loading />
+}
+else
+{
+    @if (!_device.Enable)
+    {
+        <div class="alert-banner warn mb"><Icon Name="power" Size="16" /> @L["Device is disabled — enable it before sending commands."]</div>
+    }
+    else if (!_device.Online && _product?.Protocol != AccessProtocols.Http)
+    {
+        <div class="alert-banner warn mb"><Icon Name="wifi-off" Size="16" /> @L["Device is offline — commands will fail until it reconnects."]</div>
+    }
+    else if (_product?.Protocol == AccessProtocols.Http)
+    {
+        <div class="alert-banner mb"><Icon Name="clock" Size="16" /> @L["HTTP device: commands are queued and delivered when the device polls GET /commands."]</div>
+    }
+
+    <div class="grid grid-main">
+        <div class="stack">
+            <div class="card">
+                <div class="card-header">
+                    <h3>@L["Writable properties"] <span class="sub">@L["read-write properties from the thing model"]</span></h3>
+                    <label class="check small"><input type="checkbox" @bind="_waitReply" /> @L["Wait up to 5s for the device reply"]</label>
+                </div>
+                @if (_writable.Count == 0)
+                {
+                    <EmptyState Title="@L["No writable properties"]" Text="@L["Mark a property as rw in the product thing model to control it here."]" IconName="layers" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>@L["Property"]</th><th style="width:8em">@L["Current"]</th><th>@L["Control"]</th><th class="hide-sm" style="width:200px">@L["Last command"]</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in _writable)
+                                {
+                                    var current = Value(p.Identifier);
+                                    var key = "p:" + p.Identifier;
+                                    var mapping = ProductService.ParseMapping(p.Mapping);
+                                    <tr>
+                                        <td><strong>@p.Name</strong><span class="sub mono">@p.Identifier · @p.DataType</span></td>
+                                        <td>
+                                            <div class="value-cell">
+                                                <span class="v">@Fmt.Value(current?.Value, p.Mapping, p.DataType) <small class="muted">@p.Unit</small></span>
+                                                <span class="t time ago" title="@(current == null ? "" : Fmt.Full(current.UpdateTime))">@(current == null ? L["no data"] : Fmt.Ago(current.UpdateTime))</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (IsBool(p))
+                                            {
+                                                var on = current?.Value is "true" or "1";
+                                                <div class="segmented">
+                                                    <button class="@(!on && current != null ? "active" : "")" disabled="@Busy(key)" @onclick='() => SetProperty(p, "false")'>@Fmt.Value("false", p.Mapping, "bool")</button>
+                                                    <button class="@(on ? "active" : "")" disabled="@Busy(key)" @onclick='() => SetProperty(p, "true")'>@Fmt.Value("true", p.Mapping, "bool")</button>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="row" style="flex-wrap:nowrap">
+                                                    @if (mapping.Count > 0)
+                                                    {
+                                                        <select class="select sm" style="min-width:110px" @bind="_inputs[key]">
+                                                            @foreach (var (k, v) in mapping)
+                                                            {
+                                                                <option value="@k">@Fmt.Text(v) (@k)</option>
+                                                            }
+                                                        </select>
+                                                    }
+                                                    else if (IsRanged(p))
+                                                    {
+                                                        <RangeSlider Value="Number(current?.Value)" Min="p.Min" Max="p.Max" Step="p.Step" Integer="IsInteger(p)" Unit="@p.Unit"
+                                                                     Label="@p.Name" Busy="Busy(key)" Disabled="Busy(key)"
+                                                                     OnCommit="v => SetProperty(p, v.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
+                                                    }
+                                                    else if (ThingValueConverter.IsNumeric(p.DataType))
+                                                    {
+                                                        <input class="input sm" style="width:110px" type="number" min="@Num(p.Min, p.Max > p.Min)" max="@Num(p.Max, p.Max > p.Min)" step="@(p.Step > 0 ? Num(p.Step, true) : "any")" @bind="_inputs[key]" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <input class="input sm" style="width:140px" @bind="_inputs[key]" />
+                                                    }
+                                                    @if (!IsRanged(p))
+                                                    {
+                                                        <button class="btn btn-sm btn-primary" disabled="@Busy(key)" @onclick="() => SetProperty(p, Input(key))">@(Busy(key) ? L["Sending…"] : L["Set"])</button>
+                                                    }
+                                                </div>
+                                            }
+                                        </td>
+                                        <td class="hide-sm"><CommandStatus Record="@Last(key)" /></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <div class="card">
+                <div class="card-header"><h3>@L["Services"] <span class="sub">@L["capabilities the platform can invoke remotely"]</span></h3></div>
+                <div class="card-body">
+                    @if (_services.Count == 0)
+                    {
+                        <EmptyState Title="@L["No services"]" Text="@L["Define services on the product."]" IconName="send" />
+                    }
+                    else
+                    {
+                        <div class="stack" style="gap:12px">
+                            @foreach (var s in _services)
+                            {
+                                var key = "s:" + s.Identifier;
+                                var parameters = _serviceParams[s.Identifier];
+                                <div class="action-card" style="margin:0">
+                                    <div class="row-between">
+                                        <div>
+                                            <strong>@s.Name</strong> <span class="badge outline mono">@s.Identifier</span> <span class="badge">@Fmt.Text(s.CallType)</span>
+                                            @if (!s.Remark.IsNullOrEmpty()) { <div class="small muted">@s.Remark</div> }
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" disabled="@Busy(key)" @onclick="() => Invoke(s)"><Icon Name="send" Size="14" /> @(Busy(key) ? L["Sending…"] : L["Invoke"])</button>
+                                    </div>
+                                    @if (parameters.Count > 0)
+                                    {
+                                        <div class="form-grid mt">
+                                            @foreach (var prm in parameters)
+                                            {
+                                                var argKey = $"{s.Identifier}.{prm.Identifier}";
+                                                <div class="field">
+                                                    <label>@(prm.Name ?? prm.Identifier) <span class="muted mono">@prm.Identifier : @prm.DataType</span></label>
+                                                    @if (prm.DataType is "bool" or "boolean")
+                                                    {
+                                                        <select class="select sm" @bind="_inputs[argKey]"><option value="">—</option><option value="true">true</option><option value="false">false</option></select>
+                                                    }
+                                                    else
+                                                    {
+                                                        <input class="input sm" type="@(ThingValueConverter.IsNumeric(prm.DataType) ? "number" : "text")" step="any" @bind="_inputs[argKey]" />
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    @if (Last(key) != null)
+                                    {
+                                        <div class="mt"><CommandStatus Record="@Last(key)" /></div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3>@L["Command log"]</h3><span class="muted small">@L["live · refreshes every 2s"]</span></div>
+            <div class="toolbar small text-2" style="gap:10px">
+                <span><span class="badge">@Fmt.Text(ServiceStatusKinds.Pending)</span> @L["queued"]</span>
+                <span><span class="badge info">@Fmt.Text(ServiceStatusKinds.Sent)</span> @L["awaiting device reply"]</span>
+                <span><span class="badge success">@Fmt.Text(ServiceStatusKinds.Success)</span></span>
+                <span><span class="badge danger">@Fmt.Text(ServiceStatusKinds.Failed) / @Fmt.Text(ServiceStatusKinds.Timeout)</span></span>
+            </div>
+            @if (_log.Items.Count == 0)
+            {
+                <EmptyState Title="@L["No commands sent yet"]" Text="@L["Invoke a service or set a read-write property."]" IconName="send" />
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="table compact">
+                        <tbody>
+                            @foreach (var c in _log.Items)
+                            {
+                                <tr>
+                                    <td class="small time" title="@Fmt.Full(c.CreateTime)">@Fmt.Time(c.CreateTime)</td>
+                                    <td>
+                                        <span class="mono">@(c.Kind == DeviceCommandService.KindProperty ? L["Set property"] : c.Name)</span>
+                                        <span class="sub mono">@c.InputData</span>
+                                        <span class="sub">@Fmt.Text(c.Source?.StartsWith("Batch:") == true ? "Batch" : c.Source) · @c.Channel</span>
+                                    </td>
+                                    <td style="width:1%"><CommandStatus Record="c" /></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <Pager PageIndex="_log.PageIndex" PageSize="_log.PageSize" Total="_log.Total" OnChange="p => { _page = p; Reload(); }" />
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public int DeviceId { get; set; }
+
+    private Device? _device;
+    private Product? _product;
+    private IList<ThingProperty> _writable = [];
+    private IList<ThingService> _services = [];
+    private Dictionary<string, List<ThingParameter>> _serviceParams = [];
+    private Dictionary<string, DeviceProperty> _values = [];
+    private readonly Dictionary<string, string?> _inputs = [];
+    private readonly Dictionary<string, long> _lastRecord = [];
+    private readonly Dictionary<long, ServiceRecord> _records = [];
+    private readonly HashSet<string> _busy = [];
+    private PagedResult<ServiceRecord> _log = new([], 0, 1, 12);
+    private int _page = 1;
+    private bool _waitReply = true;
+    private Timer? _timer;
+
+    protected override void OnParametersSet()
+    {
+        _device = Device.FindById(DeviceId);
+        if (_device == null) return;
+
+        _product = _device.Product;
+        _writable = Products.GetProperties(_device.ProductId).Where(e => e.Enable && e.AccessMode == "rw").ToList();
+        _services = Products.GetServices(_device.ProductId).Where(e => e.Enable).ToList();
+        _serviceParams = _services.ToDictionary(e => e.Identifier, e => ProductService.ParseParameters(e.InputData));
+        Reload();
+        foreach (var p in _writable) _inputs.TryAdd("p:" + p.Identifier, Value(p.Identifier)?.Value);
+        foreach (var (service, parameters) in _serviceParams)
+            foreach (var prm in parameters) _inputs.TryAdd($"{service}.{prm.Identifier}", null);
+
+        _timer ??= new Timer(_ => InvokeAsync(() => { Reload(); StateHasChanged(); }), null, 2000, 2000);
+    }
+
+    private void Reload()
+    {
+        _device = Device.FindById(DeviceId) ?? _device;
+        _values = DeviceProperty.FindAllByDeviceId(DeviceId).ToDictionary(e => e.Name, StringComparer.OrdinalIgnoreCase);
+        _log = Devices.GetServiceRecords(DeviceId, _page, 12);
+
+        // 刷新仍在等待回复的指令状态
+        foreach (var id in _lastRecord.Values.Distinct())
+        {
+            if (_records.TryGetValue(id, out var r) && r.Status is not (ServiceStatusKinds.Sent or ServiceStatusKinds.Pending)) continue;
+            var latest = ServiceRecord.FindById(id);
+            if (latest != null) _records[id] = latest;
+        }
+    }
+
+    private DeviceProperty? Value(string identifier) => _values.TryGetValue(identifier, out var v) ? v : null;
+    private string? Input(string key) => _inputs.TryGetValue(key, out var v) ? v : null;
+
+    private ServiceRecord? Last(string key) => _lastRecord.TryGetValue(key, out var id) && _records.TryGetValue(id, out var r) ? r : null;
+    private bool Busy(string key) => _busy.Contains(key);
+    private static bool IsBool(ThingProperty p) => p.DataType is "bool" or "boolean" or "bit";
+
+    /// <summary>数值型且有取值范围、无枚举映射的属性使用滑块</summary>
+    internal static bool IsRanged(ThingProperty p) => ThingValueConverter.IsNumeric(p.DataType) && p.Max > p.Min && ProductService.ParseMapping(p.Mapping).Count == 0;
+
+    internal static bool IsInteger(ThingProperty p) => p.DataType is not ("float" or "single" or "double" or "decimal");
+
+    private static double? Number(string? value) =>
+        double.TryParse(value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : null;
+    private static string Num(double v, bool use) => use ? v.ToString(System.Globalization.CultureInfo.InvariantCulture) : "";
+
+    private Task SetProperty(ThingProperty p, string? value) =>
+        Send("p:" + p.Identifier, () => Commands.SetPropertiesAsync(_device!, new Dictionary<string, object?> { [p.Identifier] = value }, "Console", _waitReply ? 5 : 0));
+
+    private Task Invoke(ThingService s)
+    {
+        var args = _serviceParams[s.Identifier]
+            .Select(p => (p.Identifier, Value: Input($"{s.Identifier}.{p.Identifier}")))
+            .Where(e => !e.Value.IsNullOrEmpty())
+            .ToDictionary(e => e.Identifier, e => (object?)e.Value);
+        return Send("s:" + s.Identifier, () => Commands.InvokeServiceAsync(_device!, s.Identifier, args, "Console", _waitReply ? 5 : 0));
+    }
+
+    private async Task Send(string key, Func<Task<ServiceRecord>> action)
+    {
+        if (!_busy.Add(key)) return;
+        try
+        {
+            var record = await action();
+            _lastRecord[key] = record.Id;
+            _records[record.Id] = record;
+
+            if (record.Status is ServiceStatusKinds.Failed or ServiceStatusKinds.Timeout)
+                Toasts.Error($"{Fmt.Text(record.Status)}: {Fmt.Text(record.OutputData)}");
+            else
+                Toasts.Success(L["{0} via {1}", Fmt.Text(record.Status), record.Channel ?? ""] + (record.OutputData.IsNullOrEmpty() ? "" : $" — {Fmt.Text(record.OutputData)}"));
+        }
+        catch (PlatformException ex)
+        {
+            Toasts.Error(L[ex.Template, ex.Arguments.Select(a => a is string s ? (object)L[s].Value : a ?? "").ToArray()]);
+        }
+        finally
+        {
+            _busy.Remove(key);
+            Reload();
+        }
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

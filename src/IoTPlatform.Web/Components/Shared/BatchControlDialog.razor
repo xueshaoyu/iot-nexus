@@ -1,0 +1,343 @@
+@* 批量控制对话框：范围预设（产品/分组/设备列表）→ 选择动作 → 预览 → 执行并展示每台设备结果 *@
+@inject BatchControlService Batch
+@inject ToastService Toasts
+
+<Modal Show="Show" ShowChanged="Close" Title="@Title" Size="lg">
+    <ChildContent>
+        @if (_error != null)
+        {
+            <div class="alert-banner warn mb"><Icon Name="alert" Size="16" /> @_error</div>
+        }
+        @if (_result == null)
+        {
+            <div class="stack" style="gap:14px">
+                <div class="alert-banner"><Icon Name="layers" Size="16" /> <span><strong>@L["Scope"]:</strong> @ScopeLabel · @L["{0} device(s)", _targets.Count]</span></div>
+
+                <div class="form-grid">
+                    @if (Scope.Type == BatchScopeType.Group)
+                    {
+                        <div class="field" style="justify-content:flex-end">
+                            <label class="check"><input type="checkbox" @bind="Scope.IncludeSubGroups" @bind:after="RefreshScope" /> @L["Include sub-groups"]</label>
+                        </div>
+                    }
+                    <div class="field">
+                        <label>@L["Offline devices"]</label>
+                        <select class="select" @bind="Scope.OnlineMode" @bind:after="Preview">
+                            <option value="@BatchOnlineMode.Auto">@L["Auto — skip offline MQTT/Driver devices, queue for HTTP devices"]</option>
+                            <option value="@BatchOnlineMode.OnlineOnly">@L["Online devices only"]</option>
+                            <option value="@BatchOnlineMode.All">@L["Try all devices (offline ones will fail)"]</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>@L["Action"]</label>
+                        <div class="segmented">
+                            <button class="@(_input.Kind == BatchControlService.KindProperty ? "active" : "")" @onclick="() => SetKind(BatchControlService.KindProperty)">@L["Set property"]</button>
+                            <button class="@(_input.Kind == BatchControlService.KindService ? "active" : "")" @onclick="() => SetKind(BatchControlService.KindService)">@L["Invoke service"]</button>
+                        </div>
+                    </div>
+
+                    @if (_input.Kind == BatchControlService.KindProperty)
+                    {
+                        <div class="field">
+                            <label>@L["Property"]</label>
+                            <select class="select" @bind="_input.Property" @bind:after="PropertyChanged">
+                                <option value="">@L["Select a property…"]</option>
+                                @foreach (var p in _properties)
+                                {
+                                    <option value="@p.Identifier">@p.Name (@p.Identifier)</option>
+                                }
+                            </select>
+                            @if (_properties.Count == 0) { <span class="hint">@L["No writable properties in this scope."]</span> }
+                        </div>
+                        @if (_propDef != null)
+                        {
+                            var mapping = ProductService.ParseMapping(_propDef.Mapping);
+                            <div class="field">
+                                <label>@L["Value"] <span class="muted mono">@_propDef.DataType @_propDef.Unit</span>
+                                    @if (DeviceControlPanel.IsRanged(_propDef)) { <strong class="mono" style="margin-left:6px">@_value @_propDef.Unit</strong> }
+                                </label>
+                                @if (_propDef.DataType is "bool" or "boolean" or "bit")
+                                {
+                                    <select class="select" @bind="_value" @bind:after="Preview">
+                                        <option value="true">@Fmt.Value("true", _propDef.Mapping, "bool") (true)</option>
+                                        <option value="false">@Fmt.Value("false", _propDef.Mapping, "bool") (false)</option>
+                                    </select>
+                                }
+                                else if (mapping.Count > 0)
+                                {
+                                    <select class="select" @bind="_value" @bind:after="Preview">
+                                        @foreach (var (k, v) in mapping)
+                                        {
+                                            <option value="@k">@Fmt.Text(v) (@k)</option>
+                                        }
+                                    </select>
+                                }
+                                else if (DeviceControlPanel.IsRanged(_propDef))
+                                {
+                                    <RangeSlider Value="ParseValue()" Min="_propDef.Min" Max="_propDef.Max" Step="_propDef.Step" Integer="DeviceControlPanel.IsInteger(_propDef)"
+                                                 Unit="@_propDef.Unit" Label="@_propDef.Name" OnCommit="SetSliderValue" />
+                                }
+                                else
+                                {
+                                    <input class="input" type="@(ThingValueConverter.IsNumeric(_propDef.DataType) ? "number" : "text")" step="any" @bind="_value" />
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="field">
+                            <label>@L["Service"]</label>
+                            <select class="select" @bind="_input.Service" @bind:after="ServiceChanged">
+                                <option value="">@L["Select a service…"]</option>
+                                @foreach (var s in _services)
+                                {
+                                    <option value="@s.Identifier">@s.Name (@s.Identifier)</option>
+                                }
+                            </select>
+                            @if (_services.Count == 0) { <span class="hint">@L["No services in this scope."]</span> }
+                        </div>
+                        @foreach (var prm in _serviceParams)
+                        {
+                            <div class="field">
+                                <label>@(prm.Name ?? prm.Identifier) <span class="muted mono">@prm.Identifier : @prm.DataType</span></label>
+                                <input class="input" type="@(ThingValueConverter.IsNumeric(prm.DataType) ? "number" : "text")" step="any" @bind="_args[prm.Identifier]" />
+                            </div>
+                        }
+                    }
+                    <div class="field">
+                        <label>@L["Wait for replies (s)"]</label>
+                        <input class="input" type="number" min="0" max="30" @bind="_input.WaitSeconds" />
+                        <span class="hint">@L["Per device; 0 = send without waiting. Replies arriving later still update each command."]</span>
+                    </div>
+                </div>
+
+                @if (_preview.Count > 0)
+                {
+                    var skipped = _preview.Where(e => e.SkipReason != null).ToList();
+                    <div class="card" style="box-shadow:none">
+                        <div class="card-header">
+                            <h3>@L["Preview"] <span class="sub">@L["{0} will run · {1} skipped", _preview.Count - skipped.Count, skipped.Count]</span></h3>
+                        </div>
+                        <div class="table-wrap" style="max-height:220px;overflow:auto">
+                            <table class="table compact">
+                                <tbody>
+                                    @foreach (var t in _preview)
+                                    {
+                                        <tr>
+                                            <td style="width:18px"><span class="dot @(t.Online ? "on" : "off")"></span></td>
+                                            <td><strong>@t.Name</strong><span class="sub mono">@t.Code · @t.ProductName</span></td>
+                                            <td class="right">
+                                                @if (t.SkipReason == null)
+                                                {
+                                                    <span class="badge success">@L["will run"]</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge">@L["skip"]</span><span class="sub">@Fmt.Text(t.SkipReason)</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                @if (_running)
+                {
+                    <div>
+                        <div class="row-between small text-2 mb" style="margin-bottom:6px"><span>@L["Sending…"]</span><span>@_done / @_total</span></div>
+                        <div class="progress batch-progress"><span style="width:@(_total == 0 ? "0" : (_done * 100 / _total).ToString())%"></span></div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-4 mb">
+                <StatCard Label="@L["Succeeded"]" Value="@_result.Succeeded.ToString()" IconName="check" Tone="success" />
+                <StatCard Label="@L["Awaiting reply"]" Value="@_result.Pending.ToString()" IconName="clock" Tone="info" />
+                <StatCard Label="@L["Failed"]" Value="@_result.Failed.ToString()" IconName="x" Tone="danger" />
+                <StatCard Label="@L["Skipped"]" Value="@_result.Skipped.ToString()" IconName="inbox" Tone="primary" />
+            </div>
+            <BatchResultTable Result="_result" />
+        }
+    </ChildContent>
+    <Footer>
+        @if (_result == null)
+        {
+            <button class="btn" @onclick="Close">@L["Cancel"]</button>
+            <button class="btn btn-primary" disabled="@(!CanRun)" @onclick="Run"><Icon Name="send" Size="16" /> @L["Send to {0} device(s)", _preview.Count(e => e.SkipReason == null)]</button>
+        }
+        else
+        {
+            <button class="btn" @onclick="Refresh"><Icon Name="refresh" Size="16" /> @L["Refresh status"]</button>
+            <button class="btn" @onclick="Reset">@L["New batch"]</button>
+            <button class="btn btn-primary" @onclick="Close">@L["Done"]</button>
+        }
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback<bool> ShowChanged { get; set; }
+    [Parameter, EditorRequired] public BatchScope Scope { get; set; } = new();
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string ScopeLabel { get; set; } = "";
+    [Parameter] public EventCallback<BatchControlResult> OnCompleted { get; set; }
+
+    private bool _opened;
+    private string? _error;
+    private IList<BatchTarget> _targets = [];
+    private IList<BatchTarget> _preview = [];
+    private List<ThingProperty> _properties = [];
+    private List<ThingService> _services = [];
+    private ThingProperty? _propDef;
+    private List<ThingParameter> _serviceParams = [];
+    private Dictionary<string, string?> _args = [];
+    private string? _value;
+    private BatchControlInput _input = new();
+    private bool _running;
+    private int _done, _total;
+    private BatchControlResult? _result;
+
+    private bool CanRun => !_running && _preview.Any(e => e.SkipReason == null) &&
+        (_input.Kind == BatchControlService.KindProperty ? !_input.Property.IsNullOrEmpty() && !_value.IsNullOrEmpty() : !_input.Service.IsNullOrEmpty());
+
+    protected override void OnParametersSet()
+    {
+        if (Show && !_opened)
+        {
+            _opened = true;
+            Reset();
+        }
+        else if (!Show)
+        {
+            _opened = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _result = null;
+        _error = null;
+        _input = new BatchControlInput { Scope = Scope, Kind = BatchControlService.KindProperty, WaitSeconds = 5 };
+        _value = null;
+        _propDef = null;
+        RefreshScope();
+    }
+
+    private void RefreshScope()
+    {
+        try
+        {
+            _error = null;
+            _targets = Batch.Resolve(Scope);
+        }
+        catch (PlatformException ex)
+        {
+            _error = L[ex.Template, ex.Arguments.Select(a => a is string s ? (object)L[s].Value : a ?? "").ToArray()];
+            _targets = [];
+        }
+
+        var productIds = _targets.Select(e => e.ProductId).Distinct().ToList();
+        _properties = productIds.SelectMany(ThingProperty.FindAllByProductId).Where(e => e.Enable && e.AccessMode == "rw")
+            .GroupBy(e => e.Identifier).Select(g => g.First()).OrderBy(e => e.Identifier).ToList();
+        _services = productIds.SelectMany(ThingService.FindAllByProductId).Where(e => e.Enable)
+            .GroupBy(e => e.Identifier).Select(g => g.First()).OrderBy(e => e.Identifier).ToList();
+
+        if (_input.Property != null && _properties.All(e => e.Identifier != _input.Property)) _input.Property = null;
+        if (_input.Service != null && _services.All(e => e.Identifier != _input.Service)) _input.Service = null;
+        _input.Property ??= _properties.FirstOrDefault()?.Identifier;
+        PropertyChanged();
+        ServiceChanged();
+    }
+
+    private void SetKind(string kind)
+    {
+        _input.Kind = kind;
+        if (kind == BatchControlService.KindService) _input.Service ??= _services.FirstOrDefault()?.Identifier;
+        ServiceChanged();
+        Preview();
+    }
+
+    private void PropertyChanged()
+    {
+        _propDef = _properties.FirstOrDefault(e => e.Identifier == _input.Property);
+        _value = _propDef == null ? null
+            : _propDef.DataType is "bool" or "boolean" or "bit" ? "true"
+            : DeviceControlPanel.IsRanged(_propDef) ? _propDef.Min.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : ProductService.ParseMapping(_propDef.Mapping).Keys.FirstOrDefault();
+        Preview();
+    }
+
+    private double? ParseValue() =>
+        double.TryParse(_value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : null;
+
+    private void SetSliderValue(double value)
+    {
+        _value = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        Preview();
+    }
+
+    private void ServiceChanged()
+    {
+        var s = _services.FirstOrDefault(e => e.Identifier == _input.Service);
+        _serviceParams = ProductService.ParseParameters(s?.InputData);
+        _args = _serviceParams.ToDictionary(e => e.Identifier, _ => (string?)null);
+        Preview();
+    }
+
+    private void Preview()
+    {
+        if (_targets.Count == 0) { _preview = []; return; }
+
+        Sync();
+        try { _preview = Batch.Resolve(Scope, _input); }
+        catch (PlatformException) { _preview = []; }
+    }
+
+    private void Sync()
+    {
+        _input.Scope = Scope;
+        _input.Value = _value;
+        _input.Args = _args.Where(e => !e.Value.IsNullOrEmpty()).ToDictionary(e => e.Key, e => (object?)e.Value);
+    }
+
+    private async Task Run()
+    {
+        Sync();
+        _running = true;
+        _done = 0;
+        _total = _preview.Count;
+        var progress = new Progress<BatchProgress>(p => { _done = p.Done; _total = p.Total; InvokeAsync(StateHasChanged); });
+        try
+        {
+            _result = await Batch.ExecuteAsync(_input, "Console", progress);
+            Toasts.Success(L["Batch finished: {0} succeeded, {1} awaiting reply, {2} failed, {3} skipped", _result.Succeeded, _result.Pending, _result.Failed, _result.Skipped]);
+            await OnCompleted.InvokeAsync(_result);
+        }
+        catch (PlatformException ex)
+        {
+            _error = L[ex.Template, ex.Arguments.Select(a => a is string s ? (object)L[s].Value : a ?? "").ToArray()];
+        }
+        finally
+        {
+            _running = false;
+        }
+    }
+
+    private void Refresh()
+    {
+        if (_result != null) _result = Batch.Get(_result.JobId);
+    }
+
+    private async Task Close()
+    {
+        Show = false;
+        _opened = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+}

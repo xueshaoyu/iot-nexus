@@ -1,0 +1,50 @@
+@* 物模型参数列表编辑。类型与规格对齐阿里云 TSL *@
+<div>
+    @foreach (var item in Items)
+    {
+        <div class="cond-row" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr) 120px 34px">
+            <input class="input sm mono" placeholder="@L["Identifier"]" @bind="item.Identifier" />
+            <input class="input sm" placeholder="@L["Name"]" @bind="item.Name" />
+            <select class="select sm" @bind="item.DataType">
+                @foreach (var t in TslTypes.All)
+                {
+                    <option value="@t">@t</option>
+                }
+            </select>
+            <button type="button" class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => Items.Remove(item)"><Icon Name="x" Size="14" /></button>
+        </div>
+        @if (item.DataType is "int" or "float" or "double")
+        {
+            <div class="cond-row" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-top:-6px;margin-bottom:8px">
+                <input class="input sm" placeholder="@L["Min"]" @bind="item.Min" />
+                <input class="input sm" placeholder="@L["Max"]" @bind="item.Max" />
+                <input class="input sm" placeholder="@L["Step"]" @bind="item.Step" />
+                <input class="input sm" placeholder="@L["Unit"]" @bind="item.Unit" />
+            </div>
+        }
+        else if (item.DataType is "text" or "array")
+        {
+            <div class="cond-row" style="grid-template-columns:120px minmax(0,1fr);margin-top:-6px;margin-bottom:8px">
+                <input class="input sm" placeholder="@(item.DataType == "array" ? L["Array size"] : L["Length"])" @bind="item.Length" />
+                @if (item.DataType == "array")
+                {
+                    <select class="select sm" @bind="item.ItemType">
+                        @foreach (var t in new[] { "int", "float", "double", "text", "struct" })
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </select>
+                }
+            </div>
+        }
+        else if (item.DataType is "bool" or "enum")
+        {
+            <div style="margin:-6px 0 8px"><input class="input sm" placeholder="@L["0=Off,1=On"]" @bind="item.Mapping" /></div>
+        }
+    }
+    <button type="button" class="btn btn-sm" @onclick="() => Items.Add(new ThingParameter())"><Icon Name="plus" Size="14" /> @L["Add parameter"]</button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public List<ThingParameter> Items { get; set; } = [];
+}

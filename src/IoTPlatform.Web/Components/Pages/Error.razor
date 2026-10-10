@@ -1,0 +1,20 @@
+﻿@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>@L["Error · NewLife IoT"]</PageTitle>
+
+<EmptyState Title="@L["Something went wrong"]" Text="@L["An error occurred while processing your request."]" IconName="alert">
+    @if (RequestId != null)
+    {
+        <div class="small muted">@L["Request ID:"] <code>@RequestId</code></div>
+    }
+    <a class="btn mt" href="/">@L["Back to dashboard"]</a>
+</EmptyState>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+
+    protected override void OnInitialized() => RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

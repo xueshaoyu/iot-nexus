@@ -1,0 +1,66 @@
+@* 柱状图（消息量）+ 折线（在线设备数），纯 SVG 渲染 *@
+@if (Points.Count == 0)
+{
+    <EmptyState Title="@L["No statistics yet"]" Text="@L["Statistics are aggregated every minute."]" IconName="chart" />
+}
+else
+{
+    <svg class="chart" viewBox="0 0 @W @H" preserveAspectRatio="none" role="img" aria-label="Trend chart">
+        <defs>
+            <linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#14b8a6" stop-opacity=".25" />
+                <stop offset="100%" stop-color="#14b8a6" stop-opacity="0" />
+            </linearGradient>
+        </defs>
+        @for (var i = 0; i <= 4; i++)
+        {
+            var y = Top + (H - Top - Bottom) * i / 4.0;
+            <g>
+                <line class="grid-line" x1="@Left" x2="@(W - Right)" y1="@F(y)" y2="@F(y)" />
+                <text class="axis" x="@(Left - 6)" y="@F(y + 3)" text-anchor="end">@Fmt.Number((long)(MaxBar * (4 - i) / 4.0))</text>
+            </g>
+        }
+        @for (var i = 0; i < Points.Count; i++)
+        {
+            var p = Points[i];
+            var x = X(i);
+            var h = (H - Top - Bottom) * p.Messages / MaxBar;
+            <rect class="bar" x="@F(x - BarW / 2)" y="@F(H - Bottom - h)" width="@F(BarW)" height="@F(Math.Max(0, h))" rx="2">
+                <title>@L["{0}: {1} messages, {2} online, {3} alarms", Label(p.Time), p.Messages.ToString("N0"), p.Online, p.Alarms]</title>
+            </rect>
+            @if (i % LabelStep == 0 || i == Points.Count - 1)
+            {
+                <g><text class="axis" x="@F(x)" y="@(H - 6)" text-anchor="middle">@Label(p.Time)</text></g>
+            }
+        }
+        <path class="area" d="@AreaPath" />
+        <path class="line" d="@LinePath" />
+    </svg>
+    <div class="legend mt">
+        <span><i style="background:#c7d2fe"></i>@L["Uplink messages"]</span>
+        <span><i style="background:#14b8a6"></i>@L["Online devices (peak, right scale max {0})", MaxLine]</span>
+    </div>
+}
+
+@code {
+    [Parameter] public IList<TrendPoint> Points { get; set; } = [];
+    [Parameter] public StatLevels Level { get; set; } = StatLevels.Hour;
+
+    private const double W = 760, H = 240, Left = 44, Right = 12, Top = 12, Bottom = 26;
+
+    private double MaxBar => Math.Max(10, Points.Count == 0 ? 10 : Points.Max(e => e.Messages)) * 1.1;
+    private int MaxLine => Math.Max(1, Points.Count == 0 ? 1 : Points.Max(e => Math.Max(e.Online, e.Total)));
+    private double Step => (W - Left - Right) / Math.Max(1, Points.Count);
+    private double BarW => Math.Max(2, Step * 0.62);
+    private int LabelStep => Math.Max(1, (int)Math.Ceiling(Points.Count / 8.0));
+
+    private double X(int i) => Left + Step * i + Step / 2;
+    private double YLine(int v) => H - Bottom - (H - Top - Bottom) * v / (MaxLine * 1.15);
+
+    private string LinePath => String.Join(" ", Points.Select((p, i) => $"{(i == 0 ? "M" : "L")}{F(X(i))},{F(YLine(p.Online))}"));
+    private string AreaPath => Points.Count == 0 ? "" : $"{LinePath} L{F(X(Points.Count - 1))},{F(H - Bottom)} L{F(X(0))},{F(H - Bottom)} Z";
+
+    private string Label(DateTime t) => Level == StatLevels.Hour ? t.ToString("HH:00") : t.ToString("MM-dd");
+
+    private static string F(double v) => v.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+}

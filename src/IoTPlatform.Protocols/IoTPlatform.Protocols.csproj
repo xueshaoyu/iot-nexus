@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+
+  <ItemGroup>
+    <PackageReference Include="NewLife.IoT" />
+    <PackageReference Include="NewLife.Modbus" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IoTPlatform.Core\IoTPlatform.Core.csproj" />
+  </ItemGroup>
+</Project>

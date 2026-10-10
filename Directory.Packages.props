@@ -1,0 +1,24 @@
+<Project>
+  <ItemGroup>
+    <!-- NewLife ecosystem -->
+    <PackageVersion Include="NewLife.Core" Version="11.19.2026.901" />
+    <PackageVersion Include="NewLife.XCode" Version="12.2.2026.901" />
+    <PackageVersion Include="NewLife.IoT" Version="3.1.2026.801" />
+    <PackageVersion Include="NewLife.MQTT" Version="3.2.2026.801" />
+    <PackageVersion Include="NewLife.Modbus" Version="2.1.2026.901" />
+    <!-- ADO.NET provider used by XCode for SQLite -->
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <!-- Hosting / DI abstractions for class libraries -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
+    <!-- Web -->
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+    <!-- Tests -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="bunit" Version="2.11.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+  </ItemGroup>
+</Project>

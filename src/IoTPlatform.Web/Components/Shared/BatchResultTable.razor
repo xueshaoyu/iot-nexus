@@ -1,0 +1,28 @@
+@* 批量控制每台设备的执行结果 *@
+<div class="table-wrap" style="max-height:360px;overflow:auto">
+    <table class="table compact">
+        <thead><tr><th>@L["Device"]</th><th>@L["Status"]</th><th>@L["Message"]</th></tr></thead>
+        <tbody>
+            @foreach (var r in Result.Results)
+            {
+                <tr>
+                    <td><a href="devices/@r.DeviceId"><strong>@(r.DeviceName ?? r.DeviceCode)</strong></a><span class="sub mono">@r.DeviceCode</span></td>
+                    <td class="nowrap"><span class="badge @Tone(r.Status)">@Fmt.Text(r.Status)</span></td>
+                    <td class="small mono" style="word-break:break-word">@Fmt.Text(r.Message)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public BatchControlResult Result { get; set; } = default!;
+
+    internal static string Tone(BatchItemStatus status) => status switch
+    {
+        BatchItemStatus.Success => "success",
+        BatchItemStatus.Sent or BatchItemStatus.Pending => "info",
+        BatchItemStatus.Failed or BatchItemStatus.Timeout => "danger",
+        _ => "",
+    };
+}

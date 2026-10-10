@@ -1,0 +1,370 @@
+@page "/devices"
+@inherits PlatformPage
+@inject DeviceService Service
+@inject DeviceGroupService Groups
+@inject BatchControlService BatchJobs
+
+<PageTitle>@L["Devices · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Devices"]</h1>
+        <p>@L["Register devices, bind them to products and groups, and monitor their connection state."]</p>
+    </div>
+    <div class="actions">
+        <button class="btn" @onclick="OpenBatch"><Icon Name="layers" Size="16" /> @L["Batch register"]</button>
+        <button class="btn btn-primary" @onclick="OpenCreate"><Icon Name="plus" Size="16" /> @L["Register device"]</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="toolbar">
+        <div class="search"><Icon Name="search" Size="15" /><input class="input sm" placeholder="@L["Code, name, IP or location"]" @bind="_query.Keyword" @bind:event="oninput" @bind:after="Search" /></div>
+        <select class="select sm" @bind="_query.ProductId" @bind:after="Search">
+            <option value="0">@L["All products"]</option>
+            @foreach (var p in Product.FindAll())
+            {
+                <option value="@p.Id">@p.Name</option>
+            }
+        </select>
+        <GroupSelect Class="sm" @bind-Value="_query.GroupId" @bind-Value:after="Search" ShowUngrouped="true" />
+        <select class="select sm" @bind="OnlineFilter">
+            <option value="">@L["Any status"]</option>
+            <option value="true">@L["Online"]</option>
+            <option value="false">@L["Offline"]</option>
+        </select>
+        <select class="select sm" @bind="EnableFilter">
+            <option value="">@L["Enabled & disabled"]</option>
+            <option value="true">@L["Enabled"]</option>
+            <option value="false">@L["Disabled"]</option>
+        </select>
+        <span class="grow"></span>
+        @if (_selected.Count > 0)
+        {
+            <span class="small text-2">@L["{0} selected", _selected.Count]</span>
+            <button class="btn btn-sm btn-primary" @onclick="OpenBatchControl"><Icon Name="send" Size="14" /> @L["Batch control"]</button>
+            <button class="btn btn-sm" @onclick="() => _showMove = true"><Icon Name="move" Size="14" /> @L["Move to group"]</button>
+            <button class="btn btn-sm btn-ghost" @onclick="() => _selected.Clear()">@L["Clear selection"]</button>
+        }
+    </div>
+
+    @if (_result == null)
+    {
+        <Loading />
+    }
+    else if (_result.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No devices match"]" Text="@L["Adjust the filters or register a new device."]" IconName="cpu">
+            <button class="btn btn-primary" @onclick="OpenCreate"><Icon Name="plus" Size="16" /> @L["Register device"]</button>
+        </EmptyState>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width:34px"><input type="checkbox" checked="@AllSelected" @onchange="ToggleAll" aria-label="@L["Select all"]" /></th>
+                        <th>@L["Device"]</th>
+                        <th>@L["Status"]</th>
+                        <th class="hide-sm">@L["Product"]</th>
+                        <th class="hide-sm">@L["Group"]</th>
+                        <th class="hide-sm">@L["Last active"]</th>
+                        <th class="hide-sm right">@L["Messages"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in _result.Items)
+                    {
+                        <tr>
+                            <td><input type="checkbox" checked="@_selected.Contains(d.Id)" @onchange="() => Toggle(d.Id)" aria-label="@L["Select {0}", d.Code]" /></td>
+                            <td>
+                                <a class="title" href="devices/@d.Id">@d.Name</a>
+                                <span class="sub mono">@d.Code @(d.IP.IsNullOrEmpty() ? "" : $"· {d.IP}")</span>
+                            </td>
+                            <td class="nowrap">
+                                <span class="row" style="gap:6px"><span class="dot @(d.Online ? "on" : "off")"></span>@(d.Online ? L["Online"] : L["Offline"])</span>
+                                @if (!d.Enable)
+                                {
+                                    <span class="badge danger" style="margin-top:4px">@L["Disabled"]</span>
+                                }
+                            </td>
+                            <td class="hide-sm">
+                                <a href="products/@d.ProductId" class="text-2">@d.ProductName</a>
+                                <span class="sub"><span class="badge @Fmt.ProtocolTone(d.Product?.Protocol)" style="height:18px">@Fmt.Text(d.Product?.Protocol)</span></span>
+                            </td>
+                            <td class="hide-sm small text-2">@(d.GroupId > 0 ? DeviceGroupService.GetPath(d.GroupId) : "—")</td>
+                            <td class="hide-sm small nowrap" title="@Fmt.Full(d.LastActive)"><span class="ago">@Fmt.Ago(d.LastActive)</span></td>
+                            <td class="hide-sm right mono">@d.Messages.ToString("N0")</td>
+                            <td class="actions">
+                                <button class="btn btn-sm btn-ghost btn-icon @(d.Enable ? "btn-danger" : "btn-success")" title="@(d.Enable ? L["Disable"] : L["Enable"])" @onclick="() => ToggleEnable(d)"><Icon Name="power" Size="15" /></button>
+                                <button class="btn btn-sm btn-ghost btn-icon" title="@L["Edit"]" @onclick="() => OpenEdit(d)"><Icon Name="edit" Size="15" /></button>
+                                <button class="btn btn-sm btn-ghost btn-icon btn-danger" title="@L["Delete"]" @onclick="() => Delete(d)"><Icon Name="trash" Size="15" /></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager PageIndex="_result.PageIndex" PageSize="_result.PageSize" Total="_result.Total" OnChange="GoPage" />
+    }
+</div>
+
+@if (_jobs.Count > 0)
+{
+    <div class="card mt">
+        <div class="card-header"><h3>@L["Recent batch jobs"]</h3><span class="muted small">@L["property writes and service calls sent to many devices"]</span></div>
+        <div class="table-wrap">
+            <table class="table compact">
+                <thead><tr><th>@L["Time"]</th><th>@L["Action"]</th><th class="hide-sm">@L["Scope"]</th><th>@L["Result"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var j in _jobs)
+                    {
+                        <tr>
+                            <td class="small nowrap">@Fmt.Time(j.CreateTime)</td>
+                            <td><span class="badge @(j.Kind == BatchControlService.KindProperty ? "primary" : "warning")">@(j.Kind == BatchControlService.KindProperty ? L["Set property"] : L["Invoke service"])</span> <span class="mono">@j.Name</span><span class="sub mono">@j.InputData</span></td>
+                            <td class="hide-sm small text-2">@JobScope(j)</td>
+                            <td class="small">
+                                <span class="badge success">@j.Succeeded</span>
+                                <span class="badge info">@j.Pending</span>
+                                <span class="badge danger">@j.Failed</span>
+                                <span class="badge">@j.Skipped</span>
+                                <span class="muted"> / @j.Total</span>
+                            </td>
+                            <td class="actions"><button class="btn btn-sm" @onclick="() => OpenJob(j.Id)">@L["Details"]</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<BatchControlDialog @bind-Show="_showBatchControl" Scope="_batchScope" Title="@L["Batch control"]" ScopeLabel="@L["{0} selected device(s)", _batchScope.DeviceIds.Length]" OnCompleted="_ => LoadJobs()" />
+
+<Modal @bind-Show="_showJob" Title="@L["Batch job #{0}", _job?.JobId ?? 0]" Size="lg">
+    <ChildContent>
+        @if (_job != null)
+        {
+            <p class="text-2" style="margin-top:0">
+                @(_job.Kind == BatchControlService.KindProperty ? L["Set property"] : L["Invoke service"]) <span class="mono">@_job.Name</span> ·
+                @L["{0} succeeded, {1} awaiting reply, {2} failed, {3} skipped", _job.Succeeded, _job.Pending, _job.Failed, _job.Skipped] · @Fmt.Full(_job.StartTime)
+            </p>
+            <BatchResultTable Result="_job" />
+        }
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => { if (_job != null) OpenJob(_job.JobId); }"><Icon Name="refresh" Size="16" /> @L["Refresh status"]</button>
+        <button class="btn btn-primary" @onclick="() => _showJob = false">@L["Close"]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showForm" Title="@(_editId > 0 ? L["Edit device"] : L["Register device"])" Size="lg">
+    <ChildContent><DeviceForm Model="_form" OnSubmit="Save" IsEdit="_editId > 0" /></ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showForm = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="device-form">@(_editId > 0 ? L["Save changes"] : L["Register"])</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showBatch" Title="@L["Batch register devices"]">
+    <ChildContent>
+        <EditForm Model="_batch" OnValidSubmit="SaveBatch" id="batch-form">
+            <LocalizedValidator />
+            <ValidationSummary class="validation-errors" />
+            <div class="form-grid">
+                <div class="field">
+                    <label>@L["Product *"]</label>
+                    <InputSelect class="select" @bind-Value="_batch.ProductId">
+                        <option value="0">@L["Select a product…"]</option>
+                        @foreach (var p in Product.FindAll())
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="field"><label>@L["Group"]</label><GroupSelect @bind-Value="_batch.GroupId" EmptyText="@L["No group"]" /></div>
+                <div class="field"><label>@L["Code prefix *"]</label><InputText class="input mono" @bind-Value="_batch.Prefix" /></div>
+                <div class="field"><label>@L["Count *"]</label><InputNumber class="input" @bind-Value="_batch.Count" /></div>
+                <div class="field full"><span class="hint">@L["Creates devices named {0}-001, {0}-002… with random secrets. Existing codes are skipped.", _batch.Prefix]</span></div>
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showBatch = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="batch-form">@L["Register {0} devices", _batch.Count]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showMove" Title="@L["Move devices to group"]" Size="sm">
+    <ChildContent>
+        <div class="field">
+            <label>@L["Target group"]</label>
+            <GroupSelect @bind-Value="_moveTo" EmptyText="@L["— Remove from group —"]" />
+        </div>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showMove = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" @onclick="Move">@L["Move {0} device(s)", _selected.Count]</button>
+    </Footer>
+</Modal>
+
+@code {
+    [SupplyParameterFromQuery(Name = "productId")] public int? ProductIdQuery { get; set; }
+    [SupplyParameterFromQuery(Name = "groupId")] public int? GroupIdQuery { get; set; }
+
+    private readonly DeviceQuery _query = new() { PageSize = 20 };
+    private PagedResult<Device>? _result;
+    private readonly HashSet<int> _selected = [];
+    private bool _showForm, _showBatch, _showBatchControl, _showMove, _showJob;
+    private BatchScope _batchScope = new();
+    private IList<BatchJob> _jobs = [];
+    private BatchControlResult? _job;
+    private int _editId, _moveTo;
+    private DeviceInput _form = new();
+    private DeviceBatchInput _batch = new();
+
+    private string OnlineFilter
+    {
+        get => _query.Online?.ToString().ToLowerInvariant() ?? "";
+        set { _query.Online = bool.TryParse(value, out var b) ? b : null; Search(); }
+    }
+
+    private string EnableFilter
+    {
+        get => _query.Enable?.ToString().ToLowerInvariant() ?? "";
+        set { _query.Enable = bool.TryParse(value, out var b) ? b : null; Search(); }
+    }
+
+    private bool AllSelected => _result != null && _result.Items.Count > 0 && _result.Items.All(e => _selected.Contains(e.Id));
+
+    protected override void OnInitialized()
+    {
+        _query.ProductId = ProductIdQuery ?? 0;
+        _query.GroupId = GroupIdQuery ?? 0;
+        Reload();
+        AutoRefresh(TimeSpan.FromSeconds(5), () => { Reload(); return Task.CompletedTask; });
+    }
+
+    private void Reload()
+    {
+        _result = Service.Query(_query);
+        LoadJobs();
+    }
+
+    private void LoadJobs() => _jobs = BatchJobs.GetRecent(5);
+
+    private void OpenBatchControl()
+    {
+        _batchScope = new BatchScope { Type = BatchScopeType.Devices, DeviceIds = _selected.ToArray() };
+        _showBatchControl = true;
+    }
+
+    private void OpenJob(long id)
+    {
+        _job = BatchJobs.Get(id);
+        _showJob = true;
+    }
+
+    private string JobScope(BatchJob j) => j.ScopeType switch
+    {
+        nameof(BatchScopeType.Product) => L["product {0}", Product.FindById(j.ScopeId)?.Name ?? j.ScopeId.ToString()],
+        nameof(BatchScopeType.Group) => L["group {0}", DeviceGroupService.GetPath(j.ScopeId)],
+        _ => L["{0} selected device(s)", j.Total],
+    };
+
+    private void Search()
+    {
+        _query.PageIndex = 1;
+        Reload();
+    }
+
+    private void GoPage(int page)
+    {
+        _query.PageIndex = page;
+        Reload();
+    }
+
+    private void Toggle(int id)
+    {
+        if (!_selected.Remove(id)) _selected.Add(id);
+    }
+
+    private void ToggleAll()
+    {
+        if (AllSelected) _selected.Clear();
+        else foreach (var d in _result!.Items) _selected.Add(d.Id);
+    }
+
+    private void OpenCreate()
+    {
+        _editId = 0;
+        _form = new DeviceInput { ProductId = _query.ProductId, GroupId = Math.Max(0, _query.GroupId) };
+        _showForm = true;
+    }
+
+    private void OpenEdit(Device d)
+    {
+        _editId = d.Id;
+        _form = DeviceInput.From(d);
+        _form.Secret = null;
+        _showForm = true;
+    }
+
+    private void OpenBatch()
+    {
+        _batch = new DeviceBatchInput { ProductId = _query.ProductId, GroupId = Math.Max(0, _query.GroupId) };
+        _showBatch = true;
+    }
+
+    private async Task Save()
+    {
+        Device? saved = null;
+        if (await Run(() => saved = _editId > 0 ? Service.Update(_editId, _form) : Service.Create(_form), _editId > 0 ? L["Device updated"] : L["Device registered"]))
+        {
+            _showForm = false;
+            if (_editId == 0 && saved != null) Nav.NavigateTo($"devices/{saved.Id}");
+            else Reload();
+        }
+    }
+
+    private async Task SaveBatch()
+    {
+        IList<Device> created = [];
+        if (await Run(() => created = Service.CreateBatch(_batch)))
+        {
+            Toasts.Success(L["Registered {0} devices", created.Count]);
+            _showBatch = false;
+            Reload();
+        }
+    }
+
+    private async Task Move()
+    {
+        var moved = 0;
+        if (await Run(() => moved = Groups.Assign(new GroupAssignInput { DeviceIds = _selected.ToArray(), GroupId = _moveTo })))
+        {
+            Toasts.Success(L["Moved {0} device(s)", moved]);
+            _selected.Clear();
+            _showMove = false;
+            Reload();
+        }
+    }
+
+    private async Task ToggleEnable(Device d)
+    {
+        if (d.Enable && !await Confirm(L["Disable {0}? Its connection will be closed and further data rejected.", d.Code])) return;
+        if (await Run(() => Service.SetEnable(d.Id, !d.Enable), d.Enable ? L["Device disabled"] : L["Device enabled"])) Reload();
+    }
+
+    private async Task Delete(Device d)
+    {
+        if (!await Confirm(L["Delete device {0}? History data is kept until retention cleanup.", d.Code])) return;
+        if (await Run(() => Service.Delete(d.Id), L["Device deleted"]))
+        {
+            _selected.Remove(d.Id);
+            Reload();
+        }
+    }
+}

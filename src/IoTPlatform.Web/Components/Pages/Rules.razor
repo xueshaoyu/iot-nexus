@@ -1,0 +1,146 @@
+@page "/rules"
+@inherits PlatformPage
+@inject RuleService Service
+@inject RuleEngine Engine
+
+<PageTitle>@L["Rules · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Rules"]</h1>
+        <p>@L["When a property crosses a threshold, an event arrives or a device goes online/offline, run actions: alarms, device linkage, webhooks, MQTT messages."]</p>
+    </div>
+    <div class="actions">
+        <a class="btn btn-primary" href="rules/new"><Icon Name="plus" Size="16" /> @L["New rule"]</a>
+    </div>
+</div>
+
+<div class="card">
+    @if (_rules == null)
+    {
+        <Loading />
+    }
+    else if (_rules.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No rules yet"]" Text="@L["Create a rule such as “temperature > 30 → raise alarm”."]" IconName="zap">
+            <a class="btn btn-primary" href="rules/new"><Icon Name="plus" Size="16" /> @L["New rule"]</a>
+        </EmptyState>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr><th>@L["Rule"]</th><th>@L["Trigger"]</th><th class="hide-sm">@L["When"]</th><th class="hide-sm">@L["Then"]</th><th class="right">@L["Triggered"]</th><th>@L["Enabled"]</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _rules.Items)
+                    {
+                        var (conditions, actions) = Engine.Parse(r);
+                        <tr>
+                            <td><a class="title" href="rules/@r.Id">@r.Name</a><span class="sub">@Scope(r)</span></td>
+                            <td><span class="badge @TriggerTone(r.TriggerType)">@TriggerText(r.TriggerType)</span>@if (!r.EventName.IsNullOrEmpty()) { <span class="sub mono">@r.EventName</span> }</td>
+                            <td class="hide-sm mono small">@(conditions.Count == 0 ? L["always"] : String.Join($" {(r.ConditionLogic == "Any" ? L["OR"] : L["AND"])} ", conditions))</td>
+                            <td class="hide-sm">@foreach (var a in actions) { <span class="badge outline" style="margin:1px">@ActionName(a.Type)</span> }</td>
+                            <td class="right nowrap"><strong>@r.Triggers</strong><span class="sub"><span class="ago right">@(Fmt.IsSet(r.LastTrigger) ? Fmt.Ago(r.LastTrigger) : L["never"])</span></span></td>
+                            <td><label class="check"><input type="checkbox" checked="@r.Enable" @onchange="() => Toggle(r)" /></label></td>
+                            <td class="actions">
+                                <a class="btn btn-sm btn-ghost btn-icon" href="rules/@r.Id" title="@L["Edit"]"><Icon Name="edit" Size="15" /></a>
+                                <button class="btn btn-sm btn-ghost btn-icon btn-danger" title="@L["Delete"]" @onclick="() => Delete(r)"><Icon Name="trash" Size="15" /></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div class="card mt">
+    <div class="card-header"><h3>@L["Recent rule executions"]</h3><span class="muted small">@L["refreshes every 5s"]</span></div>
+    @if (_logs.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No rule has fired yet"]" IconName="activity" />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table compact">
+                <thead><tr><th>@L["Time"]</th><th>@L["Rule"]</th><th>@L["Device"]</th><th>@L["Result"]</th><th class="hide-sm">@L["Snapshot"]</th></tr></thead>
+                <tbody>
+                    @foreach (var l in _logs.Items)
+                    {
+                        <tr>
+                            <td class="small nowrap">@Fmt.Time(l.CreateTime)</td>
+                            <td><a href="rules/@l.RuleId">@l.RuleName</a><span class="sub">@TriggerText(l.TriggerType)</span></td>
+                            <td><a href="devices/@l.DeviceId">@l.DeviceName</a></td>
+                            <td><span class="badge @(l.Success ? "success" : "danger")">@(l.Success ? L["ok"] : L["Failed"])</span><span class="sub">@l.Result</span></td>
+                            <td class="hide-sm mono small" style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@l.Snapshot</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager PageIndex="_logs.PageIndex" PageSize="_logs.PageSize" Total="_logs.Total" OnChange="p => { _logPage = p; Load(); }" />
+    }
+</div>
+
+@code {
+    private PagedResult<Rule>? _rules;
+    private PagedResult<RuleLog> _logs = new([], 0, 1, 15);
+    private int _logPage = 1;
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(5), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _rules = Service.Query(null, null, 1, 200);
+        _logs = Service.GetLogs(0, 0, _logPage, 15);
+    }
+
+    internal static string Scope(Rule r)
+    {
+        var parts = new List<string>();
+        if (r.ProductId > 0) parts.Add(Fmt.Tr("product {0}", r.ProductName ?? ""));
+        if (r.GroupId > 0) parts.Add(Fmt.Tr("group {0}", r.GroupName ?? ""));
+        if (r.DeviceId > 0) parts.Add(Fmt.Tr("device {0}", r.DeviceName ?? ""));
+        return (parts.Count == 0 ? Fmt.Tr("all devices") : String.Join(", ", parts)) + (r.SilenceSeconds > 0 ? " · " + Fmt.Tr("silence {0}s", r.SilenceSeconds) : "");
+    }
+
+    internal static string TriggerText(string? trigger) => Fmt.Text(trigger switch
+    {
+        RuleTriggers.Property => "Property report",
+        RuleTriggers.Event => "Device event",
+        RuleTriggers.Online => "Goes online",
+        RuleTriggers.Offline => "Goes offline",
+        _ => trigger,
+    });
+
+    private string ActionName(string type)
+    {
+        var action = Engine.Actions.FirstOrDefault(e => e.Name == type);
+        return action == null ? type : L[action.DisplayName];
+    }
+
+    internal static string TriggerTone(string? trigger) => trigger switch
+    {
+        RuleTriggers.Property => "primary",
+        RuleTriggers.Event => "warning",
+        RuleTriggers.Online => "success",
+        _ => "",
+    };
+
+    private async Task Toggle(Rule r)
+    {
+        if (await Run(() => Service.SetEnable(r.Id, !r.Enable), r.Enable ? L["Rule disabled"] : L["Rule enabled"])) Load();
+    }
+
+    private async Task Delete(Rule r)
+    {
+        if (await Confirm(L["Delete rule '{0}'?", r.Name]) && await Run(() => Service.Delete(r.Id), L["Rule deleted"])) Load();
+    }
+}

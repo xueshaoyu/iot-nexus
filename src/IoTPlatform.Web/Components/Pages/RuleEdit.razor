@@ -1,0 +1,399 @@
+@page "/rules/new"
+@page "/rules/{Id:int}"
+@inherits PlatformPage
+@inject RuleService Service
+@inject RuleEngine Engine
+@inject ProductService Products
+
+<PageTitle>@(Id > 0 ? L["Edit rule"] : L["New rule"]) · @L["NewLife IoT"]</PageTitle>
+
+<div class="breadcrumb"><a href="rules">@L["Rules"]</a> / @(Id > 0 ? _form.Name : L["New rule"])</div>
+<div class="page-header">
+    <div>
+        <h1>@(Id > 0 ? _form.Name : L["New rule"])</h1>
+        <p>@L["Trigger → scope → conditions → actions. Action parameters accept templates like"] <code>{device.name}</code>, <code>{temperature}</code>, <code>{event.remark}</code>.</p>
+    </div>
+    <div class="actions">
+        <a class="btn" href="rules">@L["Cancel"]</a>
+        <button class="btn btn-primary" @onclick="Save"><Icon Name="check" Size="16" /> @(Id > 0 ? L["Save rule"] : L["Create rule"])</button>
+    </div>
+</div>
+
+@if (_notFound)
+{
+    <EmptyState Title="@L["Rule not found"]" IconName="zap"><a class="btn" href="rules">@L["Back to rules"]</a></EmptyState>
+}
+else
+{
+    <div class="grid grid-main">
+        <div class="stack">
+            <div class="card">
+                <div class="card-header"><h3>1. @L["Basics & trigger"]</h3></div>
+                <div class="card-body">
+                    <div class="form-grid">
+                        <div class="field"><label>@L["Name *"]</label><input class="input" @bind="_form.Name" placeholder="@L["High temperature alarm"]" /></div>
+                        <div class="field">
+                            <label>@L["Trigger *"]</label>
+                            <select class="select" @bind="_form.TriggerType">
+                                <option value="@RuleTriggers.Property">@L["Property report — evaluate on each data upload"]</option>
+                                <option value="@RuleTriggers.Event">@L["Device event — e.g. overheat"]</option>
+                                <option value="@RuleTriggers.Online">@L["Device goes online"]</option>
+                                <option value="@RuleTriggers.Offline">@L["Device goes offline"]</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>@L["Product scope"]</label>
+                            <select class="select" @bind="_form.ProductId" @bind:after="ProductChanged">
+                                <option value="0">@L["All products"]</option>
+                                @foreach (var p in Product.FindAll())
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field"><label>@L["Group scope"]</label><GroupSelect @bind-Value="_form.GroupId" EmptyText="@L["All groups (includes sub-groups)"]" /></div>
+                        <div class="field">
+                            <label>@L["Device scope"]</label>
+                            <select class="select" @bind="_form.DeviceId">
+                                <option value="0">@L["All devices in scope"]</option>
+                                @foreach (var d in Device.FindAll().Where(e => _form.ProductId == 0 || e.ProductId == _form.ProductId))
+                                {
+                                    <option value="@d.Id">@d.Name (@d.Code)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>@L["Silence period (s)"]</label>
+                            <input class="input" type="number" @bind="_form.SilenceSeconds" />
+                            <span class="hint">@L["After firing for a device, suppress repeats for this long."]</span>
+                        </div>
+                        @if (_form.TriggerType == RuleTriggers.Event)
+                        {
+                            <div class="field">
+                                <label>@L["Event"]</label>
+                                <input class="input mono" list="events" @bind="_form.EventName" placeholder="@L["any event"]" />
+                                <datalist id="events">
+                                    @foreach (var e in _events)
+                                    {
+                                        <option value="@ThingKey.Qualify(e.FunctionBlockId, e.Identifier)">@e.Name</option>
+                                    }
+                                </datalist>
+                            </div>
+                        }
+                        <div class="field" style="justify-content:flex-end"><label class="check"><input type="checkbox" @bind="_form.Enable" /> @L["Enabled"]</label></div>
+                        <div class="field full"><label>@L["Description"]</label><input class="input" @bind="_form.Remark" /></div>
+                    </div>
+                </div>
+            </div>
+
+            @if (_form.TriggerType is RuleTriggers.Property or RuleTriggers.Event)
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h3>@L["2. Conditions"] <span class="sub">@(_form.TriggerType == RuleTriggers.Event ? L["optional, evaluated on event data"] : L["required"])</span></h3>
+                        <select class="select sm" style="width:auto" @bind="_form.ConditionLogic">
+                            <option value="All">@L["Match ALL conditions"]</option>
+                            <option value="Any">@L["Match ANY condition"]</option>
+                        </select>
+                    </div>
+                    <div class="card-body">
+                        <datalist id="props">
+                            @foreach (var name in Suggestions())
+                            {
+                                <option value="@name"></option>
+                            }
+                        </datalist>
+                        @foreach (var c in _form.Conditions)
+                        {
+                            <div class="cond-row">
+                                <input class="input sm mono" list="props" placeholder="@L["Property"]" @bind="c.Property" />
+                                <select class="select sm" @bind="c.Operator">
+                                    @foreach (var op in RuleOperators.All)
+                                    {
+                                        <option value="@op">@(op.Length > 2 ? L[op] : op)</option>
+                                    }
+                                </select>
+                                <input class="input sm" placeholder="@(c.Operator == RuleOperators.Changed ? L["(not used)"] : L["Value"])" disabled="@(c.Operator == RuleOperators.Changed)" @bind="c.Value" />
+                                <button class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => _form.Conditions.Remove(c)"><Icon Name="x" Size="14" /></button>
+                            </div>
+                        }
+                        <button class="btn btn-sm" @onclick="AddCondition"><Icon Name="plus" Size="14" /> @L["Add condition"]</button>
+                        <p class="hint small" style="margin:10px 0 0">@L["Numbers compare numerically, other values compare as text. “changed” fires when the reported value differs from the previous one. A property rule only evaluates when at least one referenced property is in the report."]</p>
+                    </div>
+                </div>
+            }
+
+            <div class="card">
+                <div class="card-header">
+                    <h3>@(_form.TriggerType is RuleTriggers.Property or RuleTriggers.Event ? "3" : "2"). @L["Actions"]</h3>
+                    <select class="select sm" style="width:auto" @onchange="AddAction">
+                        <option value="">@L["+ Add action…"]</option>
+                        @foreach (var a in Engine.Actions)
+                        {
+                            <option value="@a.Name">@L[a.DisplayName]</option>
+                        }
+                    </select>
+                </div>
+                <div class="card-body">
+                    @if (_form.Actions.Count == 0)
+                    {
+                        <EmptyState Title="@L["No actions"]" Text="@L["Add at least one action."]" IconName="zap" />
+                    }
+                    @foreach (var def in _form.Actions)
+                    {
+                        var action = Engine.Actions.FirstOrDefault(e => e.Name == def.Type);
+                        <div class="action-card">
+                            <div class="row-between" style="margin-bottom:10px">
+                                <div><strong>@(action == null ? def.Type : L[action.DisplayName])</strong> <span class="badge outline mono">@def.Type</span><div class="small muted">@(action == null ? "" : L[action.Description])</div></div>
+                                <button class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => _form.Actions.Remove(def)"><Icon Name="trash" Size="14" /></button>
+                            </div>
+                            <div class="form-grid">
+                                @foreach (var p in action?.Parameters ?? [])
+                                {
+                                    <div class="field @(p.Name is "content" or "body" or "payload" or "args" ? "full" : "")">
+                                        <label>@L[p.DisplayName] @(p.Required ? "*" : "")</label>
+                                        @if (p.Options != null)
+                                        {
+                                            <select class="select sm" value="@Get(def, p)" @onchange="e => def.Parameters[p.Name] = e.Value?.ToString()">
+                                                @foreach (var o in p.Options)
+                                                {
+                                                    <option value="@o">@Fmt.Text(o)</option>
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            <input class="input sm" value="@Get(def, p)" placeholder="@(p.DefaultValue == null ? "" : L[p.DefaultValue])" @onchange="e => def.Parameters[p.Name] = e.Value?.ToString()" />
+                                        }
+                                        @if (p.Description != null) { <span class="hint">@L[p.Description]</span> }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="stack">
+            <div class="card">
+                <div class="card-header"><h3>@L["Summary"]</h3></div>
+                <div class="card-body">
+                    <p style="margin:0;line-height:1.7">
+                        <strong>@L["When"]</strong> @Describe()
+                        @if (_form.Conditions.Any(e => !e.Property.IsNullOrWhiteSpace()) && _form.TriggerType is RuleTriggers.Property or RuleTriggers.Event)
+                        {
+                            <span> <strong>@L["AND"]</strong> <code>@String.Join(_form.ConditionLogic == "Any" ? $" {L["OR"]} " : $" {L["AND"]} ", _form.Conditions.Where(e => !e.Property.IsNullOrWhiteSpace()))</code></span>
+                        }
+                        <br /><strong>@L["Then"]</strong> @(_form.Actions.Count == 0 ? "…" : String.Join(", ", _form.Actions.Select(a => Engine.Actions.FirstOrDefault(e => e.Name == a.Type)?.DisplayName ?? a.Type).Select(e => L[e].Value.ToLowerInvariant())))
+                        @if (_form.SilenceSeconds > 0) { <br /><span class="muted">@L["at most once every {0} s per device", _form.SilenceSeconds]</span> }
+                    </p>
+                </div>
+            </div>
+
+            @if (Id > 0)
+            {
+                <div class="card">
+                    <div class="card-header"><h3>@L["Test rule"]</h3><span class="muted small">@L["uses the saved version"]</span></div>
+                    <div class="card-body stack" style="gap:12px">
+                        <div class="field">
+                            <label>@L["Device"]</label>
+                            <select class="select" @bind="_testDevice">
+                                @foreach (var d in Device.FindAll().Where(e => _form.ProductId == 0 || e.ProductId == _form.ProductId))
+                                {
+                                    <option value="@d.Id">@d.Name (@d.Code)</option>
+                                }
+                            </select>
+                        </div>
+                        @if (_form.TriggerType == RuleTriggers.Event)
+                        {
+                            <div class="field"><label>@L["Event name"]</label><input class="input mono" @bind="_testEvent" /></div>
+                        }
+                        <div class="field">
+                            <label>@L["Values (JSON)"]</label>
+                            <textarea class="input" rows="3" @bind="_testJson"></textarea>
+                        </div>
+                        <div class="row">
+                            <button class="btn" @onclick="() => Test(false)"><Icon Name="play" Size="14" /> @L["Dry run"]</button>
+                            <button class="btn btn-primary" @onclick="() => Test(true)"><Icon Name="zap" Size="14" /> @L["Run actions"]</button>
+                        </div>
+                        @if (_testResult != null)
+                        {
+                            <div class="alert-banner @(_testResult.Matched ? "" : "warn")"><Icon Name="@(_testResult.Matched ? "check" : "x")" Size="16" /> <span><strong>@(_testResult.Matched ? L["Matched"] : L["Not matched"])</strong> — @Fmt.Text(_testResult.Message)</span></div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>@L["Recent executions"]</h3></div>
+                    <div class="card-body flush">
+                        @if (_logs.Count == 0)
+                        {
+                            <EmptyState Title="@L["Not triggered yet"]" IconName="activity" />
+                        }
+                        else
+                        {
+                            <table class="table compact">
+                                <tbody>
+                                    @foreach (var l in _logs)
+                                    {
+                                        <tr>
+                                            <td class="small nowrap">@Fmt.Time(l.CreateTime)</td>
+                                            <td><a href="devices/@l.DeviceId">@l.DeviceName</a><span class="sub">@l.Result</span></td>
+                                            <td><span class="badge @(l.Success ? "success" : "danger")">@(l.Success ? L["ok"] : L["Failed"])</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private RuleInput _form = new() { Conditions = [new RuleCondition { Property = "temperature", Operator = ">", Value = "30" }] };
+    private bool _notFound;
+    private IList<ThingProperty> _properties = [];
+    private IList<ThingEvent> _events = [];
+    private IList<RuleLog> _logs = [];
+
+    private int _testDevice;
+    private string _testJson = "{\"temperature\": 35}";
+    private string? _testEvent;
+    private RuleTestResult? _testResult;
+
+    protected override void OnParametersSet()
+    {
+        if (Id > 0)
+        {
+            var rule = Rule.FindById(Id);
+            _notFound = rule == null;
+            if (rule == null) return;
+
+            _form = Service.ToInput(rule);
+            _logs = Service.GetLogs(Id, 0, 1, 10).Items;
+            _testEvent = rule.EventName;
+        }
+        else
+        {
+            _form.Actions = [new RuleActionDefinition { Type = "alarm", Parameters = Defaults(Engine.Actions.First(e => e.Name == "alarm")) }];
+        }
+
+        ProductChanged();
+    }
+
+    private void ProductChanged()
+    {
+        _properties = _form.ProductId > 0 ? Products.GetProperties(_form.ProductId) : ThingProperty.FindAll().GroupBy(e => e.Identifier).Select(g => g.First()).ToList();
+        _events = _form.ProductId > 0 ? Products.GetEvents(_form.ProductId) : ThingEvent.FindAll().GroupBy(e => e.Identifier).Select(g => g.First()).ToList();
+        _testDevice = Device.FindAll().FirstOrDefault(e => _form.ProductId == 0 || e.ProductId == _form.ProductId)?.Id ?? 0;
+    }
+
+    private void AddCondition() => _form.Conditions.Add(new RuleCondition { Property = Suggestions().FirstOrDefault() ?? "" });
+
+    /// <summary>规则可引用的属性、自定义模块属性和 struct 子字段，以及事件输出参数</summary>
+    private IEnumerable<string> Suggestions()
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in _properties)
+        {
+            var key = ThingKey.Qualify(p.FunctionBlockId, p.Identifier);
+            if (seen.Add(key)) yield return key;
+            if (TslTypes.Normalize(p.DataType) == "struct" && !string.IsNullOrWhiteSpace(p.Specs))
+            {
+                foreach (var child in StructFields(p.Specs))
+                {
+                    var childKey = key + "." + child;
+                    if (seen.Add(childKey)) yield return childKey;
+                }
+            }
+        }
+
+        if (_form.TriggerType == RuleTriggers.Event)
+        {
+            foreach (var e in _events)
+            {
+                foreach (var parameter in ProductService.ParseParameters(e.OutputData))
+                {
+                    if (!parameter.Identifier.IsNullOrWhiteSpace() && seen.Add(parameter.Identifier)) yield return parameter.Identifier;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> StructFields(string specs)
+    {
+        var names = new List<string>();
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(specs);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) return names;
+
+            foreach (var field in doc.RootElement.EnumerateArray())
+            {
+                if (field.TryGetProperty("identifier", out var id) && id.GetString() is { Length: > 0 } text)
+                    names.Add(text);
+            }
+        }
+        catch (System.Text.Json.JsonException) { }
+
+        return names;
+    }
+
+    /// <summary>动作参数默认值；自由文本模板按当前语言给出，枚举选项保持原值</summary>
+    private Dictionary<string, string?> Defaults(IRuleAction action) =>
+        action.Parameters.ToDictionary(p => p.Name, p => p.Options == null && p.DefaultValue != null ? L[p.DefaultValue].Value : p.DefaultValue);
+
+    private static string? Get(RuleActionDefinition def, RuleActionParameter p) => def.Parameters.TryGetValue(p.Name, out var v) ? v : p.DefaultValue;
+
+    private void AddAction(ChangeEventArgs e)
+    {
+        var action = Engine.Actions.FirstOrDefault(a => a.Name == e.Value?.ToString());
+        if (action == null) return;
+
+        _form.Actions.Add(new RuleActionDefinition { Type = action.Name, Parameters = Defaults(action) });
+    }
+
+    private string Describe()
+    {
+        string scope = _form.DeviceId > 0 ? Device.FindById(_form.DeviceId)?.Name ?? ""
+            : _form.ProductId > 0 ? L["any {0}", Product.FindById(_form.ProductId)?.Name ?? ""]
+            : L["any device"];
+        if (_form.GroupId > 0) scope += L[" in {0}", DeviceGroupService.GetPath(_form.GroupId)];
+
+        return _form.TriggerType switch
+        {
+            RuleTriggers.Event => L["{0} reports event {1}", scope, _form.EventName.IsNullOrEmpty() ? L["(any)"] : _form.EventName],
+            RuleTriggers.Online => L["{0} comes online", scope],
+            RuleTriggers.Offline => L["{0} goes offline", scope],
+            _ => L["{0} reports data", scope],
+        };
+    }
+
+    private async Task Save()
+    {
+        Rule? saved = null;
+        if (await Run(() => saved = Id > 0 ? Service.Update(Id, _form) : Service.Create(_form), Id > 0 ? L["Rule saved"] : L["Rule created"]) && saved != null)
+        {
+            if (Id == 0) Nav.NavigateTo($"rules/{saved.Id}");
+        }
+    }
+
+    private async Task Test(bool execute)
+    {
+        var values = JsonDefaults.ParseObject(_testJson);
+        if (values == null)
+        {
+            Toasts.Error(L["Values must be a JSON object"]);
+            return;
+        }
+
+        await Run(async () => _testResult = await Service.TestAsync(Id, _testDevice, values, _testEvent, execute));
+        if (execute) _logs = Service.GetLogs(Id, 0, 1, 10).Items;
+    }
+}

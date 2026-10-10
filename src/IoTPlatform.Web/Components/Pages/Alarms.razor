@@ -1,0 +1,145 @@
+@page "/alarms"
+@inherits PlatformPage
+@inject AlarmService Service
+
+<PageTitle>@L["Alarms · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Alarms"]</h1>
+        <p>@L["Raised by rule actions. Repeated triggers for the same rule and device update the open alarm instead of creating duplicates."]</p>
+    </div>
+</div>
+
+<div class="grid grid-4 mb">
+    <StatCard Label="@L["Active"]" Value="@_active.ToString()" IconName="bell" Tone="@(_active > 0 ? "danger" : "success")" />
+    <StatCard Label="@L["Critical (active)"]" Value="@_critical.ToString()" IconName="alert" Tone="danger" />
+    <StatCard Label="@L["Acknowledged"]" Value="@_acked.ToString()" IconName="check" Tone="info" />
+    <StatCard Label="@L["Closed"]" Value="@_closed.ToString()" IconName="inbox" Tone="primary" />
+</div>
+
+<div class="card">
+    <div class="toolbar">
+        <select class="select sm" @bind="StatusFilter">
+            <option value="">@L["All statuses"]</option>
+            @foreach (var s in Enum.GetValues<AlarmStatus>())
+            {
+                <option value="@s">@Fmt.Text(s)</option>
+            }
+        </select>
+        <select class="select sm" @bind="LevelFilter">
+            <option value="">@L["All levels"]</option>
+            @foreach (var l in Enum.GetValues<AlarmLevels>())
+            {
+                <option value="@l">@Fmt.Text(l)</option>
+            }
+        </select>
+    </div>
+    @if (_result.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No alarms"]" Text="@L["Nothing matches the current filters."]" IconName="bell" />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>@L["Level"]</th><th>@L["Alarm"]</th><th class="hide-sm">@L["Device"]</th><th class="hide-sm">@L["Rule"]</th><th>@L["Status"]</th><th class="hide-sm">@L["Last update"]</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var a in _result.Items)
+                    {
+                        <tr>
+                            <td><span class="badge @Fmt.LevelTone(a.Level)">@Fmt.Text(a.Level)</span></td>
+                            <td><span class="title">@a.Title</span><span class="sub">@a.Content</span></td>
+                            <td class="hide-sm"><a href="devices/@a.DeviceId">@a.DeviceName</a></td>
+                            <td class="hide-sm"><a href="rules/@a.RuleId" class="text-2">@a.RuleName</a></td>
+                            <td>
+                                <span class="badge @(a.Status == AlarmStatus.Active ? "danger" : a.Status == AlarmStatus.Acknowledged ? "info" : "")">@Fmt.Text(a.Status)</span>
+                                @if (!a.HandleRemark.IsNullOrEmpty()) { <span class="sub">@a.HandleRemark</span> }
+                            </td>
+                            <td class="hide-sm small nowrap" title="@L["Raised {0}", Fmt.Full(a.CreateTime)]"><span class="ago">@Fmt.Ago(a.UpdateTime)</span></td>
+                            <td class="actions">
+                                @if (a.Status == AlarmStatus.Active)
+                                {
+                                    <button class="btn btn-sm" @onclick="() => Open(a, AlarmStatus.Acknowledged)">@L["Acknowledge"]</button>
+                                }
+                                @if (a.Status != AlarmStatus.Closed)
+                                {
+                                    <button class="btn btn-sm" @onclick="() => Open(a, AlarmStatus.Closed)">@L["Close"]</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager PageIndex="_result.PageIndex" PageSize="_result.PageSize" Total="_result.Total" OnChange="p => { _page = p; Load(); }" />
+    }
+</div>
+
+<Modal @bind-Show="_showHandle" Title="@(_target == AlarmStatus.Closed ? L["Close alarm"] : L["Acknowledge alarm"])" Size="sm">
+    <ChildContent>
+        <p style="margin-top:0"><strong>@_alarm?.Title</strong></p>
+        <div class="field"><label>@L["Note"]</label><input class="input" @bind="_remark" placeholder="@L["e.g. Technician dispatched"]" /></div>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showHandle = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" @onclick="Handle">@(_target == AlarmStatus.Closed ? L["Close"] : L["Acknowledge"])</button>
+    </Footer>
+</Modal>
+
+@code {
+    private PagedResult<Alarm> _result = new([], 0, 1, 20);
+    private AlarmStatus? _status = AlarmStatus.Active;
+    private AlarmLevels? _level;
+    private int _page = 1;
+    private int _active, _critical, _acked, _closed;
+
+    private bool _showHandle;
+    private Alarm? _alarm;
+    private AlarmStatus _target;
+    private string? _remark;
+
+    private string StatusFilter
+    {
+        get => _status?.ToString() ?? "";
+        set { _status = Enum.TryParse<AlarmStatus>(value, out var s) ? s : null; _page = 1; Load(); }
+    }
+
+    private string LevelFilter
+    {
+        get => _level?.ToString() ?? "";
+        set { _level = Enum.TryParse<AlarmLevels>(value, out var l) ? l : null; _page = 1; Load(); }
+    }
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(5), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _result = Service.Query(_status, _level, 0, 0, _page, 20);
+        _active = (int)Alarm.FindCount(Alarm._.Status == AlarmStatus.Active);
+        _critical = (int)Alarm.FindCount(Alarm._.Status == AlarmStatus.Active & Alarm._.Level == AlarmLevels.Critical);
+        _acked = (int)Alarm.FindCount(Alarm._.Status == AlarmStatus.Acknowledged);
+        _closed = (int)Alarm.FindCount(Alarm._.Status == AlarmStatus.Closed);
+    }
+
+    private void Open(Alarm a, AlarmStatus target)
+    {
+        _alarm = a;
+        _target = target;
+        _remark = null;
+        _showHandle = true;
+    }
+
+    private async Task Handle()
+    {
+        if (_alarm != null && await Run(() => Service.Handle(_alarm.Id, new AlarmHandleInput { Status = _target, Remark = _remark }), _target == AlarmStatus.Closed ? L["Alarm closed"] : L["Alarm acknowledged"]))
+        {
+            _showHandle = false;
+            Load();
+        }
+    }
+}

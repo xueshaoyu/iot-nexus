@@ -1,0 +1,27 @@
+﻿@inject IWebHostEnvironment Env
+<!DOCTYPE html>
+<html lang="@System.Globalization.CultureInfo.CurrentUICulture.Name">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <title>@L["NewLife IoT"]</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%234f46e5'/><path d='M13 4 6 13h5l-1 7 7-9h-5z' fill='white'/></svg>" />
+    <link rel="stylesheet" href="app.css?v=@AssetVersion("app.css")" />
+    <link rel="stylesheet" href="IoTPlatform.Web.styles.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="slider.js?v=@AssetVersion("slider.js")"></script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>
+
+@code {
+    // 静态资源地址带上文件修改时间，部署新版本后浏览器不会继续使用缓存的旧文件
+    private string AssetVersion(string file) => Env.WebRootFileProvider.GetFileInfo(file).LastModified.ToUnixTimeSeconds().ToString();
+}

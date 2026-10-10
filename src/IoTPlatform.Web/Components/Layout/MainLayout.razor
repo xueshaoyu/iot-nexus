@@ -1,0 +1,151 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IoTPlatform.Mqtt.IMqttTransport MqttHost
+
+<div class="app @(_navOpen ? "nav-open" : "")">
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo"><Icon Name="zap" Size="18" /></div>
+            <div>@L["NewLife IoT"]<small>@L["Device management platform"]</small></div>
+        </div>
+        <nav class="nav">
+            <div class="nav-section">@L["Overview"]</div>
+            <NavLink href="" Match="NavLinkMatch.All"><Icon Name="dashboard" /> @L["Dashboard"]</NavLink>
+            <NavLink href="stats"><Icon Name="chart" /> @L["Statistics"]</NavLink>
+            <NavLink href="access-logs"><Icon Name="activity" /> @L["Access logs"]</NavLink>
+
+            <div class="nav-section">@L["Devices"]</div>
+            <NavLink href="products"><Icon Name="box" /> @L["Products"]</NavLink>
+            <NavLink href="devices"><Icon Name="cpu" /> @L["Devices"]</NavLink>
+            <NavLink href="groups"><Icon Name="folder" /> @L["Groups"]</NavLink>
+
+            <div class="nav-section">@L["Automation"]</div>
+            <NavLink href="rules"><Icon Name="zap" /> @L["Rules"]</NavLink>
+            <NavLink href="alarms">
+                <Icon Name="bell" /> @L["Alarms"]
+                @if (_activeAlarms > 0)
+                {
+                    <span class="count">@_activeAlarms</span>
+                }
+            </NavLink>
+
+            <div class="nav-section">@L["Connectivity"]</div>
+            <NavLink href="protocols"><Icon Name="radio" /> @L["Protocols & MQTT"]</NavLink>
+            <a href="swagger" target="_blank"><Icon Name="layers" /> @L["REST API"]</a>
+        </nav>
+        <div class="sidebar-foot">
+            <div class="live">
+                <span class="dot @(_mqttRunning ? "on" : "off")"></span>
+                @if (_mqttBrokers > 1)
+                {
+                    @L["MQTT · {0} broker(s)", _mqttRunningCount]
+                    <span class="muted">(@_mqttBroker)</span>
+                }
+                else if (_mqttExternal)
+                {
+                    @L["External MQTT · {0}", _mqttRunning ? L["connected"] : L["disconnected"]]
+                    <span class="muted" title="@_mqttServer">(@_mqttBroker)</span>
+                }
+                else
+                {
+                    @L["MQTT :{0} · {1} client(s)", _mqttPort, _mqttClients]
+                }
+            </div>
+            <div class="lang-switch" role="group" aria-label="@L["Language"]">
+                @foreach (var (name, label) in UiCultures.Supported)
+                {
+                    <button class="@(IsCurrent(name) ? "active" : "")" @onclick="() => SwitchCulture(name)">@label</button>
+                }
+            </div>
+        </div>
+    </aside>
+
+    <div class="scrim" @onclick="() => _navOpen = false"></div>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-ghost btn-icon" style="color:#fff" @onclick="() => _navOpen = !_navOpen" aria-label="@L["Toggle navigation"]"><Icon Name="menu" /></button>
+            <strong class="grow">@L["NewLife IoT"]</strong>
+            <div class="lang-switch compact" role="group" aria-label="@L["Language"]">
+                @foreach (var (name, label) in UiCultures.Supported)
+                {
+                    <button class="@(IsCurrent(name) ? "active" : "")" @onclick="() => SwitchCulture(name)">@(name.StartsWith("zh") ? "中" : "EN")</button>
+                }
+            </div>
+        </header>
+        <main class="content">
+            @Body
+        </main>
+    </div>
+</div>
+
+<ToastHost />
+
+<div id="blazor-error-ui">
+    @L["An unhandled error has occurred."]
+    <a href="" class="reload">@L["Reload"]</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    private bool _navOpen;
+    private bool _mqttRunning;
+    private bool _mqttExternal;
+    private string? _mqttBroker;
+    private string? _mqttServer;
+    private int _mqttPort;
+    private int _mqttClients;
+    private int _mqttBrokers;
+    private int _mqttRunningCount;
+    private int _activeAlarms;
+    private Timer? _timer;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        Refresh();
+        _timer = new Timer(_ => InvokeAsync(() => { Refresh(); StateHasChanged(); }), null, 5000, 5000);
+    }
+
+    private static bool IsCurrent(string culture) =>
+        System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith(culture.Split('-')[0], StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>写 Cookie 后整页刷新，Blazor Server 线路按新语言重建</summary>
+    private void SwitchCulture(string culture)
+    {
+        var uri = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateTo($"culture/set?culture={Uri.EscapeDataString(culture)}&redirectUri={Uri.EscapeDataString(uri)}", forceLoad: true);
+    }
+
+    private void Refresh()
+    {
+        try
+        {
+            var status = MqttHost.GetStatus();
+            var brokers = MqttHost.GetBrokers();
+            _mqttRunning = brokers.Any(e => e.Running);
+            _mqttRunningCount = brokers.Count(e => e.Running);
+            _mqttBrokers = brokers.Count;
+            _mqttExternal = status.Mode == MqttModes.External;
+            _mqttBroker = status.BrokerName ?? status.BrokerId ?? "?";
+            _mqttServer = status.Server;
+            _mqttPort = status.Port;
+            _mqttClients = status.ConnectedClients;
+            _activeAlarms = (int)Alarm.FindCount(Alarm._.Status == AlarmStatus.Active);
+        }
+        catch { }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        _navOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        _timer?.Dispose();
+    }
+}

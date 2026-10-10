@@ -1,0 +1,291 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Web.Script.Serialization;
+using System.Xml.Serialization;
+using NewLife;
+using NewLife.Data;
+using XCode;
+using XCode.Cache;
+using XCode.Configuration;
+using XCode.DataAccessLayer;
+
+namespace IoTPlatform.Data;
+
+/// <summary>设备分组。树状结构的设备分组，便于批量管理与规则作用域</summary>
+[Serializable]
+[DataObject]
+[Description("设备分组。树状结构的设备分组，便于批量管理与规则作用域")]
+[BindIndex("IU_DeviceGroup_ParentId_Name", true, "ParentId,Name")]
+[BindTable("DeviceGroup", Description = "设备分组。树状结构的设备分组，便于批量管理与规则作用域", ConnName = "IoT", DbType = DatabaseType.None)]
+public partial class DeviceGroup
+{
+    #region 属性
+    private Int32 _Id;
+    /// <summary>编号</summary>
+    [DisplayName("编号")]
+    [Description("编号")]
+    [DataObjectField(true, true, false, 0)]
+    [BindColumn("Id", "编号", "")]
+    public Int32 Id { get => _Id; set { if (OnPropertyChanging("Id", value)) { _Id = value; OnPropertyChanged("Id"); } } }
+
+    private String _Name = null!;
+    /// <summary>名称</summary>
+    [DisplayName("名称")]
+    [Description("名称")]
+    [DataObjectField(false, false, false, 50)]
+    [BindColumn("Name", "名称", "", Master = true)]
+    public String Name { get => _Name; set { if (OnPropertyChanging("Name", value)) { _Name = value; OnPropertyChanged("Name"); } } }
+
+    private Int32 _ParentId;
+    /// <summary>父级</summary>
+    [DisplayName("父级")]
+    [Description("父级")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("ParentId", "父级", "")]
+    public Int32 ParentId { get => _ParentId; set { if (OnPropertyChanging("ParentId", value)) { _ParentId = value; OnPropertyChanged("ParentId"); } } }
+
+    private Int32 _Sort;
+    /// <summary>排序</summary>
+    [DisplayName("排序")]
+    [Description("排序")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("Sort", "排序", "")]
+    public Int32 Sort { get => _Sort; set { if (OnPropertyChanging("Sort", value)) { _Sort = value; OnPropertyChanged("Sort"); } } }
+
+    private Boolean _Enable;
+    /// <summary>启用</summary>
+    [DisplayName("启用")]
+    [Description("启用")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("Enable", "启用", "")]
+    public Boolean Enable { get => _Enable; set { if (OnPropertyChanging("Enable", value)) { _Enable = value; OnPropertyChanged("Enable"); } } }
+
+    private Int32 _Devices;
+    /// <summary>设备数</summary>
+    [DisplayName("设备数")]
+    [Description("设备数")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("Devices", "设备数", "")]
+    public Int32 Devices { get => _Devices; set { if (OnPropertyChanging("Devices", value)) { _Devices = value; OnPropertyChanged("Devices"); } } }
+
+    private Int32 _Onlines;
+    /// <summary>在线数</summary>
+    [DisplayName("在线数")]
+    [Description("在线数")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("Onlines", "在线数", "")]
+    public Int32 Onlines { get => _Onlines; set { if (OnPropertyChanging("Onlines", value)) { _Onlines = value; OnPropertyChanged("Onlines"); } } }
+
+    private DateTime _CreateTime;
+    /// <summary>创建时间</summary>
+    [Category("扩展")]
+    [DisplayName("创建时间")]
+    [Description("创建时间")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("CreateTime", "创建时间", "")]
+    public DateTime CreateTime { get => _CreateTime; set { if (OnPropertyChanging("CreateTime", value)) { _CreateTime = value; OnPropertyChanged("CreateTime"); } } }
+
+    private DateTime _UpdateTime;
+    /// <summary>更新时间</summary>
+    [Category("扩展")]
+    [DisplayName("更新时间")]
+    [Description("更新时间")]
+    [DataObjectField(false, false, false, 0)]
+    [BindColumn("UpdateTime", "更新时间", "")]
+    public DateTime UpdateTime { get => _UpdateTime; set { if (OnPropertyChanging("UpdateTime", value)) { _UpdateTime = value; OnPropertyChanged("UpdateTime"); } } }
+
+    private String? _Remark;
+    /// <summary>备注</summary>
+    [Category("扩展")]
+    [DisplayName("备注")]
+    [Description("备注")]
+    [DataObjectField(false, false, true, 500)]
+    [BindColumn("Remark", "备注", "")]
+    public String? Remark { get => _Remark; set { if (OnPropertyChanging("Remark", value)) { _Remark = value; OnPropertyChanged("Remark"); } } }
+    #endregion
+
+    #region 获取/设置 字段值
+    /// <summary>获取/设置 字段值</summary>
+    /// <param name="name">字段名</param>
+    /// <returns></returns>
+    public override Object? this[String name]
+    {
+        get => name switch
+        {
+            "Id" => _Id,
+            "Name" => _Name,
+            "ParentId" => _ParentId,
+            "Sort" => _Sort,
+            "Enable" => _Enable,
+            "Devices" => _Devices,
+            "Onlines" => _Onlines,
+            "CreateTime" => _CreateTime,
+            "UpdateTime" => _UpdateTime,
+            "Remark" => _Remark,
+            _ => base[name]
+        };
+        set
+        {
+            switch (name)
+            {
+                case "Id": _Id = value.ToInt(); break;
+                case "Name": _Name = Convert.ToString(value); break;
+                case "ParentId": _ParentId = value.ToInt(); break;
+                case "Sort": _Sort = value.ToInt(); break;
+                case "Enable": _Enable = value.ToBoolean(); break;
+                case "Devices": _Devices = value.ToInt(); break;
+                case "Onlines": _Onlines = value.ToInt(); break;
+                case "CreateTime": _CreateTime = value.ToDateTime(); break;
+                case "UpdateTime": _UpdateTime = value.ToDateTime(); break;
+                case "Remark": _Remark = Convert.ToString(value); break;
+                default: base[name] = value; break;
+            }
+        }
+    }
+    #endregion
+
+    #region 关联映射
+    #endregion
+
+    #region 扩展查询
+    /// <summary>根据编号查找</summary>
+    /// <param name="id">编号</param>
+    /// <returns>实体对象</returns>
+    public static DeviceGroup? FindById(Int32 id)
+    {
+        if (id < 0) return null;
+
+        // 实体缓存
+        if (Meta.Session.Count < MaxCacheCount) return Meta.Cache.Find(e => e.Id == id);
+
+        // 单对象缓存
+        return Meta.SingleCache[id];
+
+        //return Find(_.Id == id);
+    }
+
+    /// <summary>根据父级、名称查找</summary>
+    /// <param name="parentId">父级</param>
+    /// <param name="name">名称</param>
+    /// <returns>实体对象</returns>
+    public static DeviceGroup? FindByParentIdAndName(Int32 parentId, String name)
+    {
+        if (parentId < 0) return null;
+        if (name.IsNullOrEmpty()) return null;
+
+        // 实体缓存
+        if (Meta.Session.Count < MaxCacheCount) return Meta.Cache.Find(e => e.ParentId == parentId && e.Name.EqualIgnoreCase(name));
+
+        return Find(_.ParentId == parentId & _.Name == name);
+    }
+
+    /// <summary>根据父级查找</summary>
+    /// <param name="parentId">父级</param>
+    /// <returns>实体列表</returns>
+    public static IList<DeviceGroup> FindAllByParentId(Int32 parentId)
+    {
+        if (parentId < 0) return [];
+
+        // 实体缓存
+        if (Meta.Session.Count < MaxCacheCount) return Meta.Cache.FindAll(e => e.ParentId == parentId);
+
+        return FindAll(_.ParentId == parentId);
+    }
+    #endregion
+
+    #region 高级查询
+    /// <summary>高级查询</summary>
+    /// <param name="parentId">父级</param>
+    /// <param name="enable">启用</param>
+    /// <param name="start">更新时间开始</param>
+    /// <param name="end">更新时间结束</param>
+    /// <param name="key">关键字</param>
+    /// <param name="page">分页参数信息。可携带统计和数据权限扩展查询等信息</param>
+    /// <returns>实体列表</returns>
+    public static IList<DeviceGroup> Search(Int32 parentId, Boolean? enable, DateTime start, DateTime end, String key, PageParameter page)
+    {
+        var exp = new WhereExpression();
+
+        if (parentId >= 0) exp &= _.ParentId == parentId;
+        if (enable != null) exp &= _.Enable == enable;
+        exp &= _.UpdateTime.Between(start, end);
+        if (!key.IsNullOrEmpty()) exp &= SearchWhereByKeys(key);
+
+        return FindAll(exp, page);
+    }
+    #endregion
+
+    #region 字段名
+    /// <summary>取得设备分组字段信息的快捷方式</summary>
+    public partial class _
+    {
+        /// <summary>编号</summary>
+        public static readonly Field Id = FindByName("Id");
+
+        /// <summary>名称</summary>
+        public static readonly Field Name = FindByName("Name");
+
+        /// <summary>父级</summary>
+        public static readonly Field ParentId = FindByName("ParentId");
+
+        /// <summary>排序</summary>
+        public static readonly Field Sort = FindByName("Sort");
+
+        /// <summary>启用</summary>
+        public static readonly Field Enable = FindByName("Enable");
+
+        /// <summary>设备数</summary>
+        public static readonly Field Devices = FindByName("Devices");
+
+        /// <summary>在线数</summary>
+        public static readonly Field Onlines = FindByName("Onlines");
+
+        /// <summary>创建时间</summary>
+        public static readonly Field CreateTime = FindByName("CreateTime");
+
+        /// <summary>更新时间</summary>
+        public static readonly Field UpdateTime = FindByName("UpdateTime");
+
+        /// <summary>备注</summary>
+        public static readonly Field Remark = FindByName("Remark");
+
+        static Field FindByName(String name) => Meta.Table.FindByName(name)!;
+    }
+
+    /// <summary>取得设备分组字段名称的快捷方式</summary>
+    public partial class __
+    {
+        /// <summary>编号</summary>
+        public const String Id = "Id";
+
+        /// <summary>名称</summary>
+        public const String Name = "Name";
+
+        /// <summary>父级</summary>
+        public const String ParentId = "ParentId";
+
+        /// <summary>排序</summary>
+        public const String Sort = "Sort";
+
+        /// <summary>启用</summary>
+        public const String Enable = "Enable";
+
+        /// <summary>设备数</summary>
+        public const String Devices = "Devices";
+
+        /// <summary>在线数</summary>
+        public const String Onlines = "Onlines";
+
+        /// <summary>创建时间</summary>
+        public const String CreateTime = "CreateTime";
+
+        /// <summary>更新时间</summary>
+        public const String UpdateTime = "UpdateTime";
+
+        /// <summary>备注</summary>
+        public const String Remark = "Remark";
+    }
+    #endregion
+}

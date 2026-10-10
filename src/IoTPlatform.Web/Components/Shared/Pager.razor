@@ -1,0 +1,24 @@
+@if (Total > 0)
+{
+    <div class="pager">
+        <span>@L["{0}–{1} of {2}", From, To, Total.ToString("N0")]</span>
+        <div class="row">
+            <button class="btn btn-sm" disabled="@(PageIndex <= 1)" @onclick="() => Go(PageIndex - 1)">@L["Previous"]</button>
+            <span class="muted small" style="padding:0 6px">@L["Page {0} / {1}", PageIndex, Pages]</span>
+            <button class="btn btn-sm" disabled="@(PageIndex >= Pages)" @onclick="() => Go(PageIndex + 1)">@L["Next"]</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int PageIndex { get; set; } = 1;
+    [Parameter] public int PageSize { get; set; } = 20;
+    [Parameter] public long Total { get; set; }
+    [Parameter] public EventCallback<int> OnChange { get; set; }
+
+    private int Pages => (int)Math.Max(1, (Total + PageSize - 1) / PageSize);
+    private long From => Total == 0 ? 0 : (PageIndex - 1L) * PageSize + 1;
+    private long To => Math.Min(Total, (long)PageIndex * PageSize);
+
+    private Task Go(int page) => OnChange.InvokeAsync(Math.Clamp(page, 1, Pages));
+}

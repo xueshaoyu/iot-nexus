@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\IoTPlatform.Mqtt\IoTPlatform.Mqtt.csproj" />
+    <ProjectReference Include="..\IoTPlatform.Simulator\IoTPlatform.Simulator.csproj" />
+  </ItemGroup>
+</Project>

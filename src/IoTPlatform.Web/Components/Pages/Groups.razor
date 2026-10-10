@@ -1,0 +1,262 @@
+@page "/groups"
+@inherits PlatformPage
+@inject DeviceGroupService Service
+@inject DeviceService Devices
+
+<PageTitle>@L["Groups · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Device groups"]</h1>
+        <p>@L["Organise devices into a hierarchy (site → building → floor). Rules can be scoped to a group and its sub-groups."]</p>
+    </div>
+    <div class="actions">
+        <button class="btn btn-primary" @onclick="() => OpenCreate(0)"><Icon Name="plus" Size="16" /> @L["New group"]</button>
+    </div>
+</div>
+
+<div class="grid grid-main">
+    <div class="card">
+        <div class="card-header"><h3>@L["Hierarchy"]</h3><span class="muted small">@L["{0} groups · {1} ungrouped device(s)", _tree.Count, _ungrouped]</span></div>
+        @if (_tree.Count == 0)
+        {
+            <EmptyState Title="@L["No groups yet"]" Text="@L["Create a top-level group to start organising devices."]" IconName="folder">
+                <button class="btn btn-primary" @onclick="() => OpenCreate(0)"><Icon Name="plus" Size="16" /> @L["New group"]</button>
+            </EmptyState>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table class="table">
+                    <thead><tr><th>@L["Group"]</th><th class="right">@L["Devices"]</th><th>@L["Online"]</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var n in _tree)
+                        {
+                            var rate = n.TotalDevices == 0 ? 0 : n.TotalOnlines * 100.0 / n.TotalDevices;
+                            <tr style="cursor:pointer;@(n.Group.Id == _selectedId ? "background:#f5f6ff" : "")" @onclick="() => Select(n.Group.Id)">
+                                <td>
+                                    <span class="tree-indent" style="width:@(n.Level * 20)px"></span>
+                                    <Icon Name="folder" Size="15" Class="muted" />
+                                    <span class="title" style="margin-left:6px">@n.Group.Name</span>
+                                    @if (!n.Group.Enable) { <span class="badge">@L["Disabled"]</span> }
+                                    @if (!n.Group.Remark.IsNullOrEmpty()) { <span class="sub" style="margin-left:@(n.Level * 20 + 22)px">@n.Group.Remark</span> }
+                                </td>
+                                <td class="right"><strong>@n.TotalDevices</strong> <span class="muted small">@L["({0} direct)", n.Devices]</span></td>
+                                <td style="width:160px">
+                                    <div class="row-between small text-2"><span>@L["{0} online", n.TotalOnlines]</span><span>@rate.ToString("0")%</span></div>
+                                    <div class="progress" style="margin-top:4px"><span style="width:@rate.ToString("0", System.Globalization.CultureInfo.InvariantCulture)%"></span></div>
+                                </td>
+                                <td class="actions" @onclick:stopPropagation="true">
+                                    <button class="btn btn-sm btn-ghost btn-icon" title="@L["Add sub-group"]" @onclick="() => OpenCreate(n.Group.Id)"><Icon Name="plus" Size="15" /></button>
+                                    <button class="btn btn-sm btn-ghost btn-icon" title="@L["Edit"]" @onclick="() => OpenEdit(n.Group)"><Icon Name="edit" Size="15" /></button>
+                                    <button class="btn btn-sm btn-ghost btn-icon btn-danger" title="@L["Delete"]" @onclick="() => Delete(n.Group)"><Icon Name="trash" Size="15" /></button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        @if (_selected == null)
+        {
+            <EmptyState Title="@L["Select a group"]" Text="@L["Pick a group to see its devices and move devices into it."]" IconName="folder" />
+        }
+        else
+        {
+            <div class="card-header">
+                <h3>@_selected.Name <span class="sub">@DeviceGroupService.GetPath(_selected.Id)</span></h3>
+                <div class="row">
+                    <a class="btn btn-sm" href="devices?groupId=@_selected.Id">@L["Open in devices"]</a>
+                    <button class="btn btn-sm" @onclick="OpenBatch"><Icon Name="send" Size="14" /> @L["Batch control"]</button>
+                    <button class="btn btn-sm btn-primary" @onclick="OpenAssign"><Icon Name="plus" Size="14" /> @L["Add devices"]</button>
+                </div>
+            </div>
+            @if (_devices.Count == 0)
+            {
+                <EmptyState Title="@L["No devices in this group"]" Text="@L["Use “Add devices” to move devices here."]" IconName="cpu" />
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table class="table compact">
+                        <tbody>
+                            @foreach (var d in _devices)
+                            {
+                                <tr>
+                                    <td><span class="dot @(d.Online ? "on" : "off")"></span></td>
+                                    <td><a class="title" href="devices/@d.Id">@d.Name</a><span class="sub mono">@d.Code · @d.ProductName</span></td>
+                                    <td class="small muted">@(d.GroupId == _selected.Id ? L["direct"] : d.GroupName)</td>
+                                    <td class="actions">
+                                        @if (d.GroupId == _selected.Id)
+                                        {
+                                            <button class="btn btn-sm btn-ghost" title="@L["Remove from group"]" @onclick="() => Remove(d)">@L["Remove"]</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (_selected != null)
+{
+    <BatchControlDialog @bind-Show="_showBatch" Scope="_batchScope" Title="@L["Batch control"]" ScopeLabel="@L["group {0}", DeviceGroupService.GetPath(_selected.Id)]" />
+}
+
+<Modal @bind-Show="_showForm" Title="@(_editId > 0 ? L["Edit group"] : L["New group"])">
+    <ChildContent>
+        <EditForm Model="_form" OnValidSubmit="Save" id="group-form">
+            <LocalizedValidator />
+            <ValidationSummary class="validation-errors" />
+            <div class="form-grid">
+                <div class="field"><label>@L["Name *"]</label><InputText class="input" @bind-Value="_form.Name" /></div>
+                <div class="field"><label>@L["Parent"]</label><GroupSelect @bind-Value="_form.ParentId" EmptyText="@L["— Top level —"]" /></div>
+                <div class="field"><label>@L["Sort order"]</label><InputNumber class="input" @bind-Value="_form.Sort" /></div>
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_form.Enable" /> @L["Enabled"]</label></div>
+                <div class="field full"><label>@L["Description"]</label><InputText class="input" @bind-Value="_form.Remark" /></div>
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showForm = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="group-form">@L["Save"]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showAssign" Title="@L["Add devices to {0}", _selected?.Name ?? ""]" Size="lg">
+    <ChildContent>
+        <div class="search mb"><Icon Name="search" Size="15" /><input class="input" placeholder="@L["Filter devices"]" @bind="_assignFilter" @bind:event="oninput" /></div>
+        <div class="table-wrap" style="max-height:420px;overflow:auto">
+            <table class="table compact">
+                <tbody>
+                    @foreach (var d in _candidates.Where(e => _assignFilter.IsNullOrEmpty() || e.Code.Contains(_assignFilter, StringComparison.OrdinalIgnoreCase) || (e.Name ?? "").Contains(_assignFilter, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        <tr>
+                            <td style="width:34px"><input type="checkbox" checked="@_assignIds.Contains(d.Id)" @onchange="() => { if (!_assignIds.Remove(d.Id)) _assignIds.Add(d.Id); }" /></td>
+                            <td><strong>@d.Name</strong><span class="sub mono">@d.Code · @d.ProductName</span></td>
+                            <td class="small muted">@(d.GroupId > 0 ? DeviceGroupService.GetPath(d.GroupId) : L["ungrouped"])</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showAssign = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" disabled="@(_assignIds.Count == 0)" @onclick="Assign">@L["Move {0} device(s)", _assignIds.Count]</button>
+    </Footer>
+</Modal>
+
+@code {
+    private IList<GroupNode> _tree = [];
+    private int _ungrouped;
+    private int _selectedId;
+    private DeviceGroup? _selected;
+    private IList<Device> _devices = [];
+
+    private bool _showForm, _showAssign, _showBatch;
+    private BatchScope _batchScope = new();
+    private int _editId;
+    private GroupInput _form = new();
+    private IList<Device> _candidates = [];
+    private readonly HashSet<int> _assignIds = [];
+    private string _assignFilter = "";
+
+    protected override void OnInitialized()
+    {
+        Load();
+        if (_tree.Count > 0) Select(_tree[0].Group.Id);
+        AutoRefresh(TimeSpan.FromSeconds(5), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _tree = Service.GetTree();
+        _ungrouped = Device.FindAll().Count(e => e.GroupId == 0);
+        if (_selectedId > 0) LoadSelected();
+    }
+
+    private void Select(int id)
+    {
+        _selectedId = id;
+        LoadSelected();
+    }
+
+    private void LoadSelected()
+    {
+        _selected = DeviceGroup.FindById(_selectedId);
+        _devices = _selected == null ? [] : Devices.Query(new DeviceQuery { GroupId = _selectedId, IncludeSubGroups = true, PageSize = 200 }).Items;
+    }
+
+    private void OpenBatch()
+    {
+        _batchScope = new BatchScope { Type = BatchScopeType.Group, GroupId = _selectedId, IncludeSubGroups = true };
+        _showBatch = true;
+    }
+
+    private void OpenCreate(int parentId)
+    {
+        _editId = 0;
+        _form = new GroupInput { ParentId = parentId };
+        _showForm = true;
+    }
+
+    private void OpenEdit(DeviceGroup g)
+    {
+        _editId = g.Id;
+        _form = new GroupInput { Name = g.Name, ParentId = g.ParentId, Sort = g.Sort, Enable = g.Enable, Remark = g.Remark };
+        _showForm = true;
+    }
+
+    private async Task Save()
+    {
+        DeviceGroup? saved = null;
+        if (await Run(() => saved = _editId > 0 ? Service.Update(_editId, _form) : Service.Create(_form), L["Group saved"]))
+        {
+            _showForm = false;
+            Load();
+            if (saved != null) Select(saved.Id);
+        }
+    }
+
+    private async Task Delete(DeviceGroup g)
+    {
+        if (!await Confirm(L["Delete group '{0}'? Its sub-groups and devices move to the parent group.", g.Name])) return;
+        if (await Run(() => Service.Delete(g.Id), L["Group deleted"]))
+        {
+            if (_selectedId == g.Id) { _selectedId = 0; _selected = null; }
+            Load();
+        }
+    }
+
+    private void OpenAssign()
+    {
+        _candidates = Device.FindAll().Where(e => e.GroupId != _selectedId).OrderBy(e => e.Code).ToList();
+        _assignIds.Clear();
+        _assignFilter = "";
+        _showAssign = true;
+    }
+
+    private async Task Assign()
+    {
+        var moved = 0;
+        if (await Run(() => moved = Service.Assign(new GroupAssignInput { DeviceIds = _assignIds.ToArray(), GroupId = _selectedId })))
+        {
+            Toasts.Success(L["Moved {0} device(s) into {1}", moved, _selected?.Name ?? ""]);
+            _showAssign = false;
+            Load();
+        }
+    }
+
+    private async Task Remove(Device d)
+    {
+        if (await Run(() => Service.Assign(new GroupAssignInput { DeviceIds = [d.Id], GroupId = 0 }), L["{0} removed from group", d.Code])) Load();
+    }
+}

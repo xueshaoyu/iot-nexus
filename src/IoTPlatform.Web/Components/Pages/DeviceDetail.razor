@@ -1,0 +1,481 @@
+@page "/devices/{Id:int}"
+@inherits PlatformPage
+@inject DeviceService Service
+@inject ProductService Products
+@inject DeviceCommandService Commands
+@inject ConnectionInfoService ConnectionInfo
+@inject MqttBrokerCatalog Brokers
+
+<PageTitle>@(_device?.Name ?? L["Device"]) · @L["NewLife IoT"]</PageTitle>
+
+@if (_device == null)
+{
+    @if (_notFound)
+    {
+        <EmptyState Title="@L["Device not found"]" Text="@L["It may have been deleted."]" IconName="cpu"><a class="btn" href="devices">@L["Back to devices"]</a></EmptyState>
+    }
+    else
+    {
+        <Loading />
+    }
+}
+else
+{
+    <div class="breadcrumb"><a href="devices">@L["Devices"]</a> / @_device.Code</div>
+    <div class="page-header">
+        <div>
+            <div class="row">
+                <h1>@_device.Name</h1>
+                <span class="badge @(_device.Online ? "success" : "")"><span class="dot @(_device.Online ? "on" : "off")"></span>@(_device.Online ? L["Online"] : L["Offline"])</span>
+                @if (!_device.Enable)
+                {
+                    <span class="badge danger">@L["Disabled"]</span>
+                }
+            </div>
+            <p>
+                <span class="mono">@_device.Code</span> ·
+                <a href="products/@_device.ProductId">@_device.ProductName</a>
+                <span class="badge @Fmt.ProtocolTone(_product?.Protocol)" style="height:18px">@Fmt.Text(_product?.Protocol)</span>
+                @if (_device.GroupId > 0)
+                {
+                    <span> · @DeviceGroupService.GetPath(_device.GroupId)</span>
+                }
+            </p>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" @onclick='() => Switch("control")'><Icon Name="send" Size="16" /> @L["Control"]</button>
+            <button class="btn @(_device.Enable ? "btn-danger" : "btn-success")" @onclick="ToggleEnable"><Icon Name="power" Size="16" /> @(_device.Enable ? L["Disable"] : L["Enable"])</button>
+            <button class="btn" @onclick="OpenEdit"><Icon Name="edit" Size="16" /> @L["Edit"]</button>
+            <button class="btn btn-ghost btn-danger" @onclick="Delete"><Icon Name="trash" Size="16" /></button>
+        </div>
+    </div>
+
+    <div class="grid grid-4 mb">
+        <StatCard Label="@L["Last active"]" Value="@Fmt.Ago(_device.LastActive)" Sub="@Fmt.Full(_device.LastActive)" IconName="clock" Tone="info" />
+        <StatCard Label="@L["Messages"]" Value="@Fmt.Number(_device.Messages)" Sub="@L["{0} connections", _device.Logins]" IconName="message" Tone="primary" />
+        <StatCard Label="@L["Online time"]" Value="@Fmt.Duration(OnlineSeconds)" Sub="@(_device.Online ? L["since {0}", Fmt.Time(_device.LastOnline)] : L["last offline {0}", Fmt.Time(_device.LastOffline)])" IconName="wifi" Tone="success" />
+        <StatCard Label="@L["Session"]" Value="@(_session == null ? "—" : Fmt.Text(_session.Protocol))" Sub="@(_session == null ? L["no active session"] : $"{_session.IP} · {_session.ClientId ?? _session.SessionId}")" IconName="server" Tone="warning" />
+    </div>
+
+    <div class="tabs">
+        <button class="tab @Active("overview")" @onclick='() => Switch("overview")'>@L["Properties"]</button>
+        <button class="tab @Active("control")" @onclick='() => Switch("control")'><Icon Name="send" Size="14" /> @L["Control"]</button>
+        <button class="tab @Active("data")" @onclick='() => Switch("data")'>@L["History data"]</button>
+        <button class="tab @Active("events")" @onclick='() => Switch("events")'>@L["Events"]</button>
+        <button class="tab @Active("history")" @onclick='() => Switch("history")'>@L["Timeline"]</button>
+        <button class="tab @Active("connect")" @onclick='() => Switch("connect")'>@L["Connection"]</button>
+    </div>
+
+    @switch (_tab)
+    {
+        case "overview":
+            <div class="grid grid-main">
+                <div class="card">
+                    <div class="card-header"><h3>@L["Live properties"] <span class="sub">@L["device shadow · refreshes every 2s"]</span></h3></div>
+                    <div class="card-body">
+                        @if (_shadow.Count == 0)
+                        {
+                            <EmptyState Title="@L["No properties defined"]" Text="@L["Add properties to the product's thing model."]" IconName="layers" />
+                        }
+                        else
+                        {
+                            <div class="tiles">
+                                @foreach (var p in _shadow)
+                                {
+                                    var def = Def(p.Identifier);
+                                    <div class="tile @(p.AccessMode == "rw" ? "rw" : "")" @key="@($"{p.Identifier}-{p.UpdateTime?.Ticks}")">
+                                        <div class="tile-name">
+                                            <span>@p.Name</span>
+                                            @if (!p.Defined) { <span class="badge warning" title="@L["Reported but not in thing model"]">@L["extra"]</span> }
+                                            else if (p.AccessMode == "rw") { <span class="badge primary">@L["rw"]</span> }
+                                        </div>
+                                        <div class="tile-value">@Fmt.Value(p.Value, def?.Mapping, p.DataType)<small>@p.Unit</small></div>
+                                        <div class="row-between">
+                                            <span class="tile-time mono">@p.Identifier · <span class="ago">@(p.UpdateTime == null ? L["no data"] : Fmt.Ago(p.UpdateTime.Value))</span></span>
+                                            @if (p.AccessMode == "rw")
+                                            {
+                                                <button class="btn btn-sm" @onclick="() => OpenSet(p)">@L["Set"]</button>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>@L["Details"]</h3></div>
+                    <div class="card-body">
+                        <dl class="kv">
+                            <dt>@L["Product"]</dt><dd><a href="products/@_device.ProductId">@_device.ProductName</a></dd>
+                            @if (_product?.Protocol == AccessProtocols.Mqtt)
+                            {
+                                <dt>@L["MQTT broker"]</dt><dd class="mono">@_brokerLabel</dd>
+                            }
+                            <dt>@L["Group"]</dt><dd>@(_device.GroupId > 0 ? DeviceGroupService.GetPath(_device.GroupId) : "—")</dd>
+                            <dt>@L["Location"]</dt><dd>@(_device.Location ?? "—")</dd>
+                            <dt>@L["IP address"]</dt><dd class="mono">@(_device.IP ?? "—")</dd>
+                            <dt>@L["Last online"]</dt><dd>@Fmt.Full(_device.LastOnline)</dd>
+                            <dt>@L["Last offline"]</dt><dd>@Fmt.Full(_device.LastOffline)</dd>
+                            <dt>@L["Registered"]</dt><dd>@Fmt.Full(_device.CreateTime)</dd>
+                            <dt>@L["Remark"]</dt><dd>@(_device.Remark ?? "—")</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            break;
+
+        case "data":
+            <div class="card">
+                <div class="card-header">
+                    <h3>@L["History"] <span class="sub">@L["latest 120 samples"]</span></h3>
+                    <select class="select sm" style="width:auto" @bind="_dataName" @bind:after="LoadData">
+                        @foreach (var p in _shadow)
+                        {
+                            <option value="@p.Identifier">@p.Name (@p.Identifier)</option>
+                        }
+                    </select>
+                </div>
+                <div class="card-body">
+                    <Sparkline Values="_series" />
+                </div>
+                <div class="table-wrap" style="max-height:320px;overflow:auto;border-top:1px solid var(--border)">
+                    <table class="table compact">
+                        <thead><tr><th>@L["Time"]</th><th>@L["Value"]</th><th class="hide-sm">@L["Device timestamp"]</th></tr></thead>
+                        <tbody>
+                            @foreach (var d in _data.Take(50))
+                            {
+                                <tr><td class="small">@Fmt.Full(d.CreateTime)</td><td class="mono">@d.Value</td><td class="hide-sm small muted mono">@d.Timestamp</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            break;
+
+        case "events":
+            <div class="card">
+                <div class="card-header"><h3>@L["Events"]</h3><span class="muted small">@L["{0} total", _events.Total]</span></div>
+                @if (_events.Items.Count == 0)
+                {
+                    <EmptyState Title="@L["No events reported"]" IconName="bell" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>@L["Time"]</th><th>@L["Event"]</th><th>@L["Type"]</th><th>@L["Remark"]</th><th class="hide-sm">@L["Data"]</th></tr></thead>
+                            <tbody>
+                                @foreach (var e in _events.Items)
+                                {
+                                    <tr>
+                                        <td class="small nowrap">@Fmt.Full(e.EventTime)</td>
+                                        <td class="mono">@e.Name</td>
+                                        <td><span class="badge @(e.Type == "alert" ? "warning" : e.Type == "error" ? "danger" : "info")">@Fmt.EventType(e.Type)</span></td>
+                                        <td>@e.Remark</td>
+                                        <td class="hide-sm mono small">@e.Data</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <Pager PageIndex="_events.PageIndex" PageSize="_events.PageSize" Total="_events.Total" OnChange="p => { _eventsPage = p; LoadTab(); }" />
+                }
+            </div>
+            break;
+
+        case "control":
+            <DeviceControlPanel DeviceId="Id" />
+            break;
+
+        case "history":
+            <div class="card">
+                <div class="card-header"><h3>@L["Lifecycle timeline"]</h3><span class="muted small">@L["online/offline, enable/disable, commands, rule triggers"]</span></div>
+                <div class="card-body" style="padding-top:4px;padding-bottom:4px">
+                    @if (_history.Items.Count == 0)
+                    {
+                        <EmptyState Title="@L["No history"]" IconName="clock" />
+                    }
+                    else
+                    {
+                        <ul class="timeline">
+                            @foreach (var h in _history.Items)
+                            {
+                                <li>
+                                    <span class="when">@Fmt.Full(h.CreateTime)</span>
+                                    <div style="min-width:0">
+                                        <span class="badge @Home.ActionTone(h.Action)">@Home.ActionText(h.Action)</span>
+                                        @if (!h.Success) { <span class="badge danger">@L["Failed"]</span> }
+                                        <div class="small text-2" style="margin-top:4px;word-break:break-word">@h.Remark</div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+                <Pager PageIndex="_history.PageIndex" PageSize="_history.PageSize" Total="_history.Total" OnChange="p => { _historyPage = p; LoadTab(); }" />
+            </div>
+            break;
+
+        case "connect":
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>@L["Credentials"]</h3>
+                        <button class="btn btn-sm" @onclick="ResetSecret"><Icon Name="key" Size="14" /> @L["Reset secret"]</button>
+                    </div>
+                    <div class="card-body">
+                        <dl class="kv">
+                            <dt>@L["Protocol"]</dt><dd>@Fmt.Text(_conn!.Protocol)</dd>
+                            @if (_conn.MqttServer != null)
+                            {
+                                <dt>@L["MQTT broker"]</dt><dd class="mono">@(_conn.BrokerName ?? _conn.BrokerProfileId) <span class="muted">(@_conn.BrokerProfileId)</span></dd>
+                                <dt>@L["MQTT server"]</dt><dd class="mono">@_conn.MqttServer</dd>
+                                <dt>@L["WebSocket"]</dt><dd class="mono">@_conn.MqttWebSocket</dd>
+                                <dt>@L["Client ID"]</dt><dd class="mono">@_conn.ClientId</dd>
+                                <dt>@L["Username"]</dt><dd class="mono">@_conn.Username</dd>
+                            }
+                            @if (_conn.HttpBase != null)
+                            {
+                                <dt>@L["HTTP base"]</dt><dd class="mono">@_conn.HttpBase</dd>
+                            }
+                            @if (_conn.Driver != null)
+                            {
+                                <dt>@L["Driver"]</dt><dd class="mono">@_conn.Driver</dd>
+                                <dt>@L["Parameters"]</dt><dd class="mono">@_conn.DriverParameter</dd>
+                            }
+                            <dt>@(_conn.MqttServer != null ? L["Password"] : L["Secret"])</dt>
+                            <dd class="row">
+                                <code>@(_revealSecret ? _conn.Password : "••••••••••••")</code>
+                                <button class="btn btn-sm btn-ghost" @onclick="() => _revealSecret = !_revealSecret">@(_revealSecret ? L["Hide"] : L["Reveal"])</button>
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>@L["Quick start"]</h3></div>
+                    <div class="card-body">
+                        @if (_conn.MqttServer != null)
+                        {
+                            <div class="stack" style="gap:10px">
+                                @foreach (var (name, topic) in _conn.Topics)
+                                {
+                                    <div><div class="small muted" style="margin-bottom:4px">@name</div><div class="copy-row"><code>@topic</code></div></div>
+                                }
+                                <div class="small muted">@L["Example (mosquitto clients):"]</div>
+                                <pre class="code-block">mosquitto_pub -h @Host -p @MqttPort -i @_device.Code -u @_device.Code -P '@(_revealSecret ? _conn.Password : "<secret>")' \
+  -t iot/@(_product?.Code)/@(_device.Code)/property/post \
+  -m '{"temperature":26.5}'</pre>
+                            </div>
+                        }
+                        else if (_conn.HttpBase != null)
+                        {
+                            <pre class="code-block">curl -X POST @(_conn.HttpBase)/properties \
+  -H 'X-Device-Secret: @(_revealSecret ? _conn.Password : "<secret>")' \
+  -H 'Content-Type: application/json' \
+  -d '{"temperature":26.5,"humidity":55}'
+
+# poll pending commands
+curl @(_conn.HttpBase)/commands -H 'X-Device-Secret: ...'</pre>
+                        }
+                        else
+                        {
+                            <p class="text-2">@L["The platform polls this device through the {0} driver (NewLife.IoT). No device-side configuration is required; edit the product or device driver parameters to change the endpoint.", _conn.Driver ?? ""]</p>
+                        }
+                    </div>
+                </div>
+            </div>
+            break;
+    }
+}
+
+<Modal @bind-Show="_showSet" Title="@L["Set {0}", _setProp?.Name ?? ""]" Size="sm">
+    <ChildContent>
+        <div class="field">
+            <label>@L["New value"] <span class="muted mono">@_setProp?.Identifier : @_setProp?.DataType</span></label>
+            @if (_setProp?.DataType is "bool" or "boolean")
+            {
+                <select class="select" @bind="_setValue">
+                    <option value="true">true (@Fmt.Value("true", Def(_setProp.Identifier)?.Mapping, "bool"))</option>
+                    <option value="false">false (@Fmt.Value("false", Def(_setProp.Identifier)?.Mapping, "bool"))</option>
+                </select>
+            }
+            else
+            {
+                <input class="input" @bind="_setValue" />
+            }
+            <span class="hint">@L["Current: {0}", $"{_setProp?.Value ?? "—"} {_setProp?.Unit}"]</span>
+        </div>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showSet = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" disabled="@_busy" @onclick="SetProperty">@(_busy ? L["Sending…"] : L["Send"])</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showEdit" Title="@L["Edit device"]" Size="lg">
+    <ChildContent><DeviceForm Model="_form" OnSubmit="SaveEdit" IsEdit="true" /></ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showEdit = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="device-form">@L["Save changes"]</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Device? _device;
+    private Product? _product;
+    private DeviceOnline? _session;
+    private bool _notFound;
+    private string _tab = "overview";
+    private IList<DeviceShadowItem> _shadow = [];
+    private Dictionary<string, ThingProperty> _definitions = [];
+    private DeviceConnectionInfo? _conn;
+    private bool _revealSecret;
+
+    private string? _dataName;
+    private IList<DeviceData> _data = [];
+    private IList<(DateTime Time, double Value)> _series = [];
+
+    private PagedResult<DeviceEvent> _events = new([], 0, 1, 20);
+    private PagedResult<DeviceHistory> _history = new([], 0, 1, 25);
+    private int _eventsPage = 1, _historyPage = 1;
+
+    private bool _busy;
+
+    private bool _showSet, _showEdit;
+    private DeviceShadowItem? _setProp;
+    private string? _setValue;
+    private DeviceInput _form = new();
+
+    private string Active(string tab) => _tab == tab ? "active" : "";
+    private ThingProperty? Def(string identifier) => _definitions.TryGetValue(identifier, out var d) ? d : null;
+    private string _brokerLabel => _device == null || _product?.Protocol != AccessProtocols.Mqtt
+        ? "—"
+        : Brokers.FindChoice(Brokers.Resolve(_device, _product)) is { } c
+            ? $"{c.Name} ({c.Id})"
+            : Brokers.Resolve(_device, _product);
+
+    private string Host => new Uri(Nav.BaseUri).Host;
+    private int MqttPort => int.TryParse(_conn?.MqttServer?.Split(':').LastOrDefault(), out var p) ? p : 1883;
+    private long OnlineSeconds => _device!.OnlineTime + (_device.Online && Fmt.IsSet(_device.LastOnline) ? (long)(DateTime.Now - _device.LastOnline).TotalSeconds : 0);
+
+    protected override void OnParametersSet()
+    {
+        Load();
+        if (_device == null) return;
+
+        AutoRefresh(TimeSpan.FromSeconds(2), () => { Load(); if (_tab is not "control" and not "connect") LoadTab(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _device = Device.FindById(Id);
+        _notFound = _device == null;
+        if (_device == null) return;
+
+        _product = _device.Product;
+        _session = DeviceOnline.FindByDeviceId(Id);
+        _shadow = Service.GetShadow(Id);
+        _definitions = Products.GetProperties(_device.ProductId).ToDictionary(e => e.Identifier, StringComparer.OrdinalIgnoreCase);
+        _conn ??= ConnectionInfo.Get(_device, null, Host);
+    }
+
+    private void Switch(string tab)
+    {
+        _tab = tab;
+        if (tab == "data" && _dataName == null) _dataName = _shadow.FirstOrDefault(e => ThingValueConverter.IsNumeric(e.DataType))?.Identifier ?? _shadow.FirstOrDefault()?.Identifier;
+        if (tab == "connect") _conn = ConnectionInfo.Get(_device!, null, Host);
+        LoadTab();
+    }
+
+    private void LoadTab()
+    {
+        switch (_tab)
+        {
+            case "data": LoadData(); break;
+            case "events": _events = Service.GetEvents(Id, _eventsPage, 20); break;
+            case "history": _history = Service.GetHistory(Id, _historyPage, 25); break;
+        }
+    }
+
+    private void LoadData()
+    {
+        if (_dataName == null) return;
+
+        _data = Service.GetData(Id, _dataName, null, null, 1, 120).Items;
+        _series = _data.Reverse()
+            .Select(e => (e.CreateTime, Ok: double.TryParse(e.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : (e.Value == "true" ? 1 : e.Value == "false" ? 0 : double.NaN)))
+            .Where(e => !double.IsNaN(e.Ok))
+            .Select(e => (e.CreateTime, e.Ok)).ToList();
+    }
+
+    private void OpenSet(DeviceShadowItem p)
+    {
+        _setProp = p;
+        _setValue = p.DataType is "bool" or "boolean" ? (p.Value == "true" ? "false" : "true") : p.Value;
+        _showSet = true;
+    }
+
+    private async Task SetProperty()
+    {
+        if (_setProp == null) return;
+
+        _busy = true;
+        ServiceRecord? record = null;
+        var ok = await Run(async () => record = await Commands.SetPropertiesAsync(_device!, new Dictionary<string, object?> { [_setProp.Identifier] = _setValue }, "Console", 5));
+        _busy = false;
+        if (ok) _showSet = false;
+        Report(record);
+    }
+
+    private void Report(ServiceRecord? record)
+    {
+        if (record == null) return;
+
+        if (record.Status is ServiceStatusKinds.Failed or ServiceStatusKinds.Timeout)
+            Toasts.Error($"{Fmt.Text(record.Status)}: {Fmt.Text(record.OutputData)}");
+        else
+            Toasts.Success(L["{0} via {1}", Fmt.Text(record.Status), record.Channel ?? ""] + (record.OutputData.IsNullOrEmpty() ? "" : $" — {Fmt.Text(record.OutputData)}"));
+    }
+
+    private async Task ToggleEnable()
+    {
+        if (_device!.Enable && !await Confirm(L["Disable {0}? Its connection will be closed.", _device.Code])) return;
+        if (await Run(() => Service.SetEnable(Id, !_device.Enable), _device.Enable ? L["Device disabled"] : L["Device enabled"])) Load();
+    }
+
+    private void OpenEdit()
+    {
+        _form = DeviceInput.From(_device!);
+        _form.Secret = null;
+        _showEdit = true;
+    }
+
+    private async Task SaveEdit()
+    {
+        if (await Run(() => Service.Update(Id, _form), L["Device updated"]))
+        {
+            _showEdit = false;
+            _conn = null;
+            Load();
+        }
+    }
+
+    private async Task ResetSecret()
+    {
+        if (!await Confirm(L["Generate a new secret? The device must be reconfigured and will be disconnected."])) return;
+        if (await Run(() => Service.ResetSecret(Id), L["Secret reset"]))
+        {
+            _conn = ConnectionInfo.Get(Device.FindById(Id)!, null, Host);
+            _revealSecret = true;
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (!await Confirm(L["Delete device {0}?", _device!.Code])) return;
+        if (await Run(() => Service.Delete(Id), L["Device deleted"])) Nav.NavigateTo("devices");
+    }
+}

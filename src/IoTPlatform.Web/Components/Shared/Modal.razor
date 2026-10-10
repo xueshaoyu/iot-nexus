@@ -1,0 +1,31 @@
+@if (Show)
+{
+    <div class="modal-backdrop" @onclick="Close">
+        <div class="modal @Size" @onclick:stopPropagation="true" role="dialog" aria-modal="true">
+            <div class="modal-header">
+                <h3>@Title</h3>
+                <button class="btn btn-ghost btn-icon btn-sm" @onclick="Close" aria-label="@L["Close"]"><Icon Name="x" Size="16" /></button>
+            </div>
+            <div class="modal-body">@ChildContent</div>
+            @if (Footer != null)
+            {
+                <div class="modal-footer">@Footer</div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback<bool> ShowChanged { get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string? Size { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    private async Task Close()
+    {
+        Show = false;
+        await ShowChanged.InvokeAsync(false);
+    }
+}

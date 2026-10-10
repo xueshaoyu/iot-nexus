@@ -1,0 +1,152 @@
+@page "/products"
+@inherits PlatformPage
+@inject ProductService Service
+
+<PageTitle>@L["Products · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Products"]</h1>
+        <p>@L["A product defines the thing model (properties, events, services) and how its devices connect."]</p>
+    </div>
+    <div class="actions">
+        <button class="btn btn-primary" @onclick="OpenCreate"><Icon Name="plus" Size="16" /> @L["New product"]</button>
+    </div>
+</div>
+
+<div class="card">
+    <div class="toolbar">
+        <div class="search"><Icon Name="search" Size="15" /><input class="input sm" placeholder="@L["Search name, key or category"]" @bind="_keyword" @bind:event="oninput" @bind:after="Reload" /></div>
+        <select class="select sm" @bind="_protocol" @bind:after="Reload">
+            <option value="">@L["All protocols"]</option>
+            @foreach (var p in AccessProtocols.All)
+            {
+                <option value="@p">@Fmt.Text(p)</option>
+            }
+        </select>
+    </div>
+    @if (_result == null)
+    {
+        <Loading />
+    }
+    else if (_result.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No products found"]" Text="@L["Create a product to define a thing model and start registering devices."]" IconName="box">
+            <button class="btn btn-primary" @onclick="OpenCreate"><Icon Name="plus" Size="16" /> @L["New product"]</button>
+        </EmptyState>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@L["Product"]</th>
+                        <th>@L["Protocol"]</th>
+                        <th class="hide-sm">@L["Thing model"]</th>
+                        <th>@L["Devices"]</th>
+                        <th class="hide-sm">@L["Status"]</th>
+                        <th class="hide-sm">@L["Updated"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in _result.Items)
+                    {
+                        var online = Device.FindAllByProductId(p.Id).Count(e => e.Online);
+                        <tr>
+                            <td>
+                                <a class="title" href="products/@p.Id">@p.Name</a>
+                                <span class="sub mono">@p.Code @(p.Category.IsNullOrEmpty() ? "" : $"· {p.Category}")</span>
+                            </td>
+                            <td>
+                                <span class="badge @Fmt.ProtocolTone(p.Protocol)">@Fmt.Text(p.Protocol)</span>
+                                @if (p.Protocol == AccessProtocols.Driver)
+                                {
+                                    <span class="sub mono">@p.DriverName</span>
+                                }
+                                else
+                                {
+                                    <span class="sub">@L["{0} codec", p.Codec ?? ""]</span>
+                                }
+                            </td>
+                            <td class="hide-sm text-2 small">
+                                @L["{0} properties · {1} events · {2} services", ThingProperty.FindAllByProductId(p.Id).Count, ThingEvent.FindAllByProductId(p.Id).Count, ThingService.FindAllByProductId(p.Id).Count]
+                            </td>
+                            <td><strong>@p.DeviceCount</strong> <span class="muted small">@L["({0} online)", online]</span></td>
+                            <td class="hide-sm"><span class="badge @(p.Enable ? "success" : "")">@(p.Enable ? L["Enabled"] : L["Disabled"])</span></td>
+                            <td class="hide-sm small muted">@Fmt.Time(p.UpdateTime)</td>
+                            <td class="actions">
+                                <a class="btn btn-sm" href="products/@p.Id">@L["Open"]</a>
+                                <button class="btn btn-sm btn-ghost btn-icon" title="@L["Edit"]" @onclick="() => OpenEdit(p)"><Icon Name="edit" Size="15" /></button>
+                                <button class="btn btn-sm btn-ghost btn-icon btn-danger" title="@L["Delete"]" @onclick="() => Delete(p)"><Icon Name="trash" Size="15" /></button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager PageIndex="_result.PageIndex" PageSize="_result.PageSize" Total="_result.Total" OnChange="GoPage" />
+    }
+</div>
+
+<Modal @bind-Show="_showForm" Title="@(_editId > 0 ? L["Edit product"] : L["New product"])" Size="lg">
+    <ChildContent>
+        <ProductForm Model="_form" OnSubmit="Save" />
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showForm = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="product-form">@(_editId > 0 ? L["Save changes"] : L["Create product"])</button>
+    </Footer>
+</Modal>
+
+@code {
+    private PagedResult<Product>? _result;
+    private string? _keyword;
+    private string? _protocol;
+    private int _page = 1;
+    private bool _showForm;
+    private int _editId;
+    private ProductInput _form = new();
+
+    protected override void OnInitialized() => Reload();
+
+    private void Reload() => _result = Service.Query(_keyword, _protocol, _page, 20);
+
+    private void GoPage(int page)
+    {
+        _page = page;
+        Reload();
+    }
+
+    private void OpenCreate()
+    {
+        _editId = 0;
+        _form = new ProductInput();
+        _showForm = true;
+    }
+
+    private void OpenEdit(Product p)
+    {
+        _editId = p.Id;
+        _form = ProductInput.From(p);
+        _showForm = true;
+    }
+
+    private async Task Save()
+    {
+        Product? saved = null;
+        if (await Run(() => saved = _editId > 0 ? Service.Update(_editId, _form) : Service.Create(_form), _editId > 0 ? L["Product updated"] : L["Product created"]))
+        {
+            _showForm = false;
+            if (_editId == 0 && saved != null) Nav.NavigateTo($"products/{saved.Id}");
+            else Reload();
+        }
+    }
+
+    private async Task Delete(Product p)
+    {
+        if (!await Confirm(L["Delete product '{0}' and its thing model?", p.Name])) return;
+        if (await Run(() => Service.Delete(p.Id), L["Product deleted"])) Reload();
+    }
+}

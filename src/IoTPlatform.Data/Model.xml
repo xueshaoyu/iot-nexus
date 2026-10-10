@@ -1,0 +1,410 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<EntityModel xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xs:schemaLocation="https://newlifex.com https://newlifex.com/Model202509.xsd" Document="https://newlifex.com/xcode/model" ModelVersion="2.0.2026.130" xmlns="https://newlifex.com/Model202509.xsd">
+  <Option>
+    <!--类名模板。其中{name}替换为Table.Name，如{name}Model/I{name}Dto等-->
+    <ClassNameTemplate />
+    <!--显示名模板。其中{displayName}替换为Table.DisplayName-->
+    <DisplayNameTemplate />
+    <!--基类。可能包含基类和接口，其中{name}替换为Table.Name-->
+    <BaseClass>Entity</BaseClass>
+    <!--命名空间-->
+    <Namespace>IoTPlatform.Data</Namespace>
+    <!--引用命名空间-->
+    <ExtendNameSpace />
+    <!--输出目录-->
+    <Output>./Entity/</Output>
+    <!--是否使用中文文件名。默认false-->
+    <ChineseFileName>False</ChineseFileName>
+    <!--用于生成Copy函数的参数类型。例如{name}或I{name}-->
+    <ModelNameForCopy />
+    <!--带有索引器。实现IModel接口-->
+    <HasIModel>True</HasIModel>
+    <!--可为null上下文。生成String?等-->
+    <Nullable>True</Nullable>
+    <!--数据库连接名-->
+    <ConnName>IoT</ConnName>
+    <!--模型类模版。设置后生成模型类，用于接口数据传输，例如{name}Model-->
+    <ModelClass />
+    <!--模型类输出目录。默认当前目录的Models子目录-->
+    <ModelsOutput>.\Models\</ModelsOutput>
+    <!--模型接口模版。设置后生成模型接口，用于约束模型类和实体类，例如I{name}-->
+    <ModelInterface />
+    <!--模型接口输出目录。默认当前目录的Interfaces子目录-->
+    <InterfacesOutput>.\Interfaces\</InterfacesOutput>
+    <!--用户实体转为模型类的模型类。例如{name}或{name}DTO-->
+    <ModelNameForToModel />
+    <!--命名格式。Default/Upper/Lower/Underline-->
+    <NameFormat>Default</NameFormat>
+    <!--魔方区域显示名-->
+    <DisplayName>物联网</DisplayName>
+    <!--魔方控制器输出目录-->
+    <CubeOutput />
+  </Option>
+  <Tables>
+    <Table Name="Product" Description="产品。设备的类型定义，包含物模型（属性、事件、服务）与接入协议">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="Name" DataType="String" Master="True" Nullable="False" Description="名称" />
+        <Column Name="Code" DataType="String" Nullable="False" Description="编码。ProductKey，全局唯一，用于MQTT主题" />
+        <Column Name="Category" DataType="String" Description="类别" />
+        <Column Name="Protocol" DataType="String" Description="接入协议。MQTT/HTTP/Driver" />
+        <Column Name="BrokerProfileId" DataType="String" Description="默认 MQTT 服务器。空表示使用平台默认（Mode/ActiveBroker）" />
+        <Column Name="Codec" DataType="String" Description="数据编解码。MQTT/HTTP上报的载荷格式，如Json/Alink" />
+        <Column Name="DriverName" DataType="String" Description="驱动名称。Driver协议时使用的NewLife.IoT驱动，如ModbusTcp/Simulator" />
+        <Column Name="DriverParameter" DataType="String" Length="2000" Description="驱动参数。Json格式的默认驱动参数，设备可覆盖" />
+        <Column Name="PollInterval" DataType="Int32" Description="采集间隔。驱动轮询间隔，单位毫秒" />
+        <Column Name="OnlineTimeout" DataType="Int32" Description="离线超时。超过该时间无心跳判定离线，单位秒，0表示使用全局配置" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="DeviceCount" DataType="Int32" Description="设备数" />
+        <Column Name="FunctionBlocks" DataType="String" Length="4000" Description="自定义模块。Json数组，元素为{functionBlockId,functionBlockName}。空表示仅默认模块" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="Code" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="ThingProperty" Description="产品属性。物模型属性定义，描述设备运行时状态，可附带驱动点位地址">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="Identifier" DataType="String" Nullable="False" Description="标识符。属性唯一标识，如temperature" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称" />
+        <Column Name="DataType" DataType="String" Description="数据类型。int/float/double/text/date/bool/enum/struct/array，兼容历史 string" />
+        <Column Name="Unit" DataType="String" Description="单位" />
+        <Column Name="UnitName" DataType="String" Description="单位名称" />
+        <Column Name="Min" DataType="Double" Description="最小值" />
+        <Column Name="Max" DataType="Double" Description="最大值" />
+        <Column Name="Step" DataType="Double" Description="步长" />
+        <Column Name="Length" DataType="Int32" Description="长度。text 最大长度，或 array 元素个数上限" />
+        <Column Name="AccessMode" DataType="String" Length="10" Description="访问模式。r只读，w只写，rw读写" />
+        <Column Name="Required" DataType="Boolean" Description="是否必选" />
+        <Column Name="Specs" DataType="String" Length="4000" Description="数据类型规格。阿里云 TSL dataType.specs 的 Json。struct 为数组，array 含 size 与 item" />
+        <Column Name="FunctionBlockId" DataType="String" Description="模块标识。空表示默认模块" />
+        <Column Name="Address" DataType="String" Description="点位地址。驱动采集地址，如Modbus的4x0" />
+        <Column Name="PointType" DataType="String" Length="20" Description="点位类型。驱动采集的原始数据类型，如short/ushort/int/float，空表示与数据类型一致" />
+        <Column Name="Scaling" DataType="Double" Description="缩放因子。原始值乘以该系数得到工程值，0表示不缩放" />
+        <Column Name="Mapping" DataType="String" Length="500" Description="枚举或布尔映射。如0=关,1=开，对应 TSL specs 的键值" />
+        <Column Name="Sort" DataType="Int32" Description="排序" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="ProductId,FunctionBlockId,Identifier" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="ThingEvent" Description="产品事件。物模型事件定义，设备主动上报的告警或通知">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="Identifier" DataType="String" Nullable="False" Description="标识符" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称" />
+        <Column Name="Type" DataType="String" Length="20" Description="事件类型。info/alert/error" />
+        <Column Name="Required" DataType="Boolean" Description="是否必选" />
+        <Column Name="FunctionBlockId" DataType="String" Description="模块标识。空表示默认模块" />
+        <Column Name="OutputData" DataType="String" Length="4000" Description="输出参数。Json数组，元素含 identifier、name、dataType 与 specs" />
+        <Column Name="Sort" DataType="Int32" Description="排序" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="ProductId,FunctionBlockId,Identifier" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="ThingService" Description="产品服务。物模型服务定义，平台可远程调用的设备能力">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="Identifier" DataType="String" Nullable="False" Description="标识符" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称" />
+        <Column Name="CallType" DataType="String" Length="20" Description="调用方式。async异步，sync同步" />
+        <Column Name="Required" DataType="Boolean" Description="是否必选" />
+        <Column Name="FunctionBlockId" DataType="String" Description="模块标识。空表示默认模块" />
+        <Column Name="InputData" DataType="String" Length="4000" Description="输入参数。Json数组，元素含 identifier、name、dataType 与 specs" />
+        <Column Name="OutputData" DataType="String" Length="4000" Description="输出参数。Json数组，元素含 identifier、name、dataType 与 specs" />
+        <Column Name="Sort" DataType="Int32" Description="排序" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="ProductId,FunctionBlockId,Identifier" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceGroup" Description="设备分组。树状结构的设备分组，便于批量管理与规则作用域">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="Name" DataType="String" Master="True" Nullable="False" Description="名称" />
+        <Column Name="ParentId" DataType="Int32" Description="父级" />
+        <Column Name="Sort" DataType="Int32" Description="排序" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="Devices" DataType="Int32" Description="设备数" />
+        <Column Name="Onlines" DataType="Int32" Description="在线数" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="ParentId,Name" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="Device" Description="设备。接入平台的物理或逻辑设备">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称" />
+        <Column Name="Code" DataType="String" Nullable="False" Description="编码。DeviceName，全局唯一，用于MQTT认证与主题" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="GroupId" DataType="Int32" Map="DeviceGroup@Id@Name" Description="分组" />
+        <Column Name="BrokerProfileId" DataType="String" Description="MQTT 服务器。空表示使用产品默认，再回退平台默认" />
+        <Column Name="Secret" DataType="String" Description="密钥。设备接入认证密钥" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="Online" DataType="Boolean" Description="在线" />
+        <Column Name="IP" DataType="String" Description="IP地址" />
+        <Column Name="Version" DataType="String" Description="固件版本" />
+        <Column Name="Location" DataType="String" Description="位置" />
+        <Column Name="DriverParameter" DataType="String" Length="2000" Description="驱动参数。Json格式，覆盖产品默认参数" />
+        <Column Name="PollInterval" DataType="Int32" Description="采集间隔。单位毫秒，0表示使用产品配置" />
+        <Column Name="Logins" DataType="Int32" Description="上线次数" />
+        <Column Name="OnlineTime" DataType="Int32" ItemType="TimeSpan" Description="在线时长。累计在线时间，单位秒" />
+        <Column Name="Messages" DataType="Int64" Description="消息数。累计上行消息数" />
+        <Column Name="LastOnline" DataType="DateTime" Description="最后上线" />
+        <Column Name="LastOffline" DataType="DateTime" Description="最后下线" />
+        <Column Name="LastActive" DataType="DateTime" Description="最后活跃。最后一次心跳或数据上报时间" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="Code" Unique="True" />
+        <Index Columns="ProductId" />
+        <Index Columns="GroupId" />
+        <Index Columns="UpdateTime" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceOnline" Description="设备在线。设备当前连接会话，下线时删除">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="SessionId" DataType="String" Description="会话。MQTT会话编号或HTTP/驱动标识" />
+        <Column Name="Protocol" DataType="String" Description="协议" />
+        <Column Name="ClientId" DataType="String" Description="客户端" />
+        <Column Name="IP" DataType="String" Description="IP地址" />
+        <Column Name="Messages" DataType="Int32" Description="消息数。本次会话上行消息数" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="上线时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="活跃时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId" Unique="True" />
+        <Index Columns="SessionId" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceHistory" Description="设备历史。上下线、启停、服务调用、规则触发等设备生命周期记录" InsertOnly="True" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Action" DataType="String" Nullable="False" Description="操作" />
+        <Column Name="Success" DataType="Boolean" Description="成功" />
+        <Column Name="Remark" DataType="String" Length="2000" Description="内容" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceProperty" Description="设备属性。设备影子，保存每个属性的最新值">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Name" DataType="String" Nullable="False" Description="标识符" />
+        <Column Name="NickName" DataType="String" Master="True" Description="名称" />
+        <Column Name="DataType" DataType="String" Description="数据类型" />
+        <Column Name="Value" DataType="String" Length="2000" Description="数值" />
+        <Column Name="Unit" DataType="String" Description="单位" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId,Name" Unique="True" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceData" Description="设备数据。属性上报的历史时序数据" InsertOnly="True" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Name" DataType="String" Master="True" Nullable="False" Description="标识符" />
+        <Column Name="Value" DataType="String" Length="2000" Description="数值" />
+        <Column Name="Timestamp" DataType="Int64" Description="时间戳。设备端采集时间，Unix毫秒" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId,Id" />
+        <Index Columns="DeviceId,Name,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceEvent" Description="设备事件。设备上报的事件记录" InsertOnly="True" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Type" DataType="String" Length="20" Description="类型。info/alert/error" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称" />
+        <Column Name="Remark" DataType="String" Length="500" Description="内容" />
+        <Column Name="Data" DataType="String" Length="2000" Description="数据。事件输出参数Json" />
+        <Column Name="EventTime" DataType="DateTime" Description="事件时间" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="ServiceRecord" Description="服务调用。平台下发给设备的服务调用与属性设置记录" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Kind" DataType="String" Length="20" Description="种类。service服务调用，property属性设置" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称。服务标识符" />
+        <Column Name="InputData" DataType="String" Length="2000" Description="输入" />
+        <Column Name="Status" DataType="Int32" Description="状态" Type="IoTPlatform.Data.ServiceStatusKinds" />
+        <Column Name="OutputData" DataType="String" Length="2000" Description="输出" />
+        <Column Name="Channel" DataType="String" Description="通道。MQTT/Driver" />
+        <Column Name="Source" DataType="String" Description="来源。Api/Rule等" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="DeviceId,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="BatchJob" Description="批量控制。按产品、分组或设备列表批量下发的属性设置或服务调用任务" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="Kind" DataType="String" Length="20" Description="种类。property属性设置，service服务调用" />
+        <Column Name="Name" DataType="String" Master="True" Description="名称。属性或服务标识符" />
+        <Column Name="ScopeType" DataType="String" Length="20" Description="范围类型。Product/Group/Devices" />
+        <Column Name="ScopeId" DataType="Int32" Description="范围编号。产品或分组编号" />
+        <Column Name="Scope" DataType="String" Length="2000" Description="范围。Json描述" />
+        <Column Name="InputData" DataType="String" Length="2000" Description="输入。属性值或服务参数" />
+        <Column Name="Total" DataType="Int32" Description="总数" />
+        <Column Name="Succeeded" DataType="Int32" Description="成功" />
+        <Column Name="Pending" DataType="Int32" Description="待回复。已下发或排队等待设备拉取" />
+        <Column Name="Failed" DataType="Int32" Description="失败" />
+        <Column Name="Skipped" DataType="Int32" Description="跳过" />
+        <Column Name="Completed" DataType="Boolean" Description="已完成" />
+        <Column Name="Source" DataType="String" Description="来源。Api/Console" />
+        <Column Name="Results" DataType="String" Length="-1" Description="结果。每台设备的执行结果Json" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" />
+      </Columns>
+    </Table>
+    <Table Name="Rule" Description="规则。基于属性、事件、上下线触发的条件动作规则">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="Name" DataType="String" Master="True" Nullable="False" Description="名称" />
+        <Column Name="Enable" DataType="Boolean" Description="启用" />
+        <Column Name="TriggerType" DataType="String" Length="20" Description="触发类型。Property/Event/Online/Offline" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品。0表示全部" />
+        <Column Name="GroupId" DataType="Int32" Map="DeviceGroup@Id@Name" Description="分组。0表示全部" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备。0表示全部" />
+        <Column Name="EventName" DataType="String" Description="事件名。事件触发时匹配的事件标识，空表示任意" />
+        <Column Name="ConditionLogic" DataType="String" Length="10" Description="条件逻辑。All全部满足，Any任一满足" />
+        <Column Name="Conditions" DataType="String" Length="-1" Description="条件。Json数组，元素为{property,operator,value}" />
+        <Column Name="Actions" DataType="String" Length="-1" Description="动作。Json数组，元素为{type,config}" />
+        <Column Name="SilenceSeconds" DataType="Int32" Description="静默期。同一设备触发后在该时间内不再重复执行，单位秒" />
+        <Column Name="Triggers" DataType="Int32" Description="触发次数" />
+        <Column Name="LastTrigger" DataType="DateTime" Description="最后触发" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" Category="扩展" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" Category="扩展" />
+        <Column Name="Remark" DataType="String" Length="500" Description="备注" Category="扩展" />
+      </Columns>
+      <Indexes>
+        <Index Columns="Name" />
+      </Indexes>
+    </Table>
+    <Table Name="RuleLog" Description="规则日志。每次规则触发的上下文与动作执行结果" InsertOnly="True" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="RuleId" DataType="Int32" Map="Rule@Id@Name" Description="规则" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="TriggerType" DataType="String" Length="20" Description="触发类型" />
+        <Column Name="Snapshot" DataType="String" Length="2000" Description="快照。触发时的数据" />
+        <Column Name="Success" DataType="Boolean" Description="成功" />
+        <Column Name="Result" DataType="String" Length="2000" Description="结果。各动作执行结果" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="RuleId,Id" />
+        <Index Columns="DeviceId,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="Alarm" Description="告警。由规则告警动作产生，支持确认处理" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="RuleId" DataType="Int32" Map="Rule@Id@Name" Description="规则" />
+        <Column Name="DeviceId" DataType="Int32" Map="Device@Id@Name" Description="设备" />
+        <Column Name="Level" DataType="Int32" Description="级别" Type="IoTPlatform.Data.AlarmLevels" />
+        <Column Name="Title" DataType="String" Master="True" Description="标题" />
+        <Column Name="Content" DataType="String" Length="2000" Description="内容" />
+        <Column Name="Status" DataType="Int32" Description="状态" Type="IoTPlatform.Data.AlarmStatus" />
+        <Column Name="HandleTime" DataType="DateTime" Description="处理时间" />
+        <Column Name="HandleRemark" DataType="String" Length="500" Description="处理备注" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="Status,Id" />
+        <Index Columns="DeviceId,Id" />
+      </Indexes>
+    </Table>
+    <Table Name="DeviceStat" Description="设备统计。按小时/天汇总设备数、在线数、消息量等指标，产品0表示全平台">
+      <Columns>
+        <Column Name="Id" DataType="Int32" Identity="True" PrimaryKey="True" Description="编号" />
+        <Column Name="Level" DataType="Int32" Description="层级" Type="IoTPlatform.Data.StatLevels" />
+        <Column Name="StatTime" DataType="DateTime" Description="统计时间" />
+        <Column Name="ProductId" DataType="Int32" Map="Product@Id@Name" Description="产品" />
+        <Column Name="Total" DataType="Int32" Description="设备总数" />
+        <Column Name="Online" DataType="Int32" Description="在线数。统计周期内最高在线数" />
+        <Column Name="Actives" DataType="Int32" Description="活跃数。统计周期内有上报的设备数" />
+        <Column Name="NewDevices" DataType="Int32" Description="新增设备" />
+        <Column Name="Messages" DataType="Int64" Description="上行消息" />
+        <Column Name="Downlinks" DataType="Int32" Description="下行消息" />
+        <Column Name="Alarms" DataType="Int32" Description="告警数" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="创建时间" />
+        <Column Name="UpdateTime" DataType="DateTime" Nullable="False" Description="更新时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="Level,StatTime,ProductId" Unique="True" />
+        <Index Columns="ProductId,Level,StatTime" />
+      </Indexes>
+    </Table>
+    <Table Name="AccessLog" Description="访问记录。管理端页面与 API 的访问日志，不含静态资源和 Blazor 心跳" InsertOnly="True" MaxCacheCount="0">
+      <Columns>
+        <Column Name="Id" DataType="Int64" PrimaryKey="True" DataScale="time" Description="编号" />
+        <Column Name="ClientIp" DataType="String" Nullable="False" Description="客户端 IP。已解析转发头" />
+        <Column Name="Country" DataType="String" Length="8" Description="国家或地区。优先 CF-IPCountry" />
+        <Column Name="Referer" DataType="String" Length="500" Description="来源页面" />
+        <Column Name="RefererHost" DataType="String" Description="来源主机。用于来源统计" />
+        <Column Name="UserAgent" DataType="String" Length="500" Description="User-Agent" />
+        <Column Name="Browser" DataType="String" Description="浏览器" />
+        <Column Name="Os" DataType="String" Description="操作系统" />
+        <Column Name="Bot" DataType="Boolean" Description="是否爬虫" />
+        <Column Name="Method" DataType="String" Length="16" Nullable="False" Description="方法" />
+        <Column Name="Path" DataType="String" Length="300" Nullable="False" Description="路径" />
+        <Column Name="QueryString" DataType="String" Length="500" Description="查询串。不含问号" />
+        <Column Name="StatusCode" DataType="Int32" Description="状态码" />
+        <Column Name="DurationMs" DataType="Int32" Description="耗时。毫秒" />
+        <Column Name="Host" DataType="String" Description="Host" />
+        <Column Name="CreateTime" DataType="DateTime" Nullable="False" Description="时间" />
+      </Columns>
+      <Indexes>
+        <Index Columns="CreateTime" />
+        <Index Columns="ClientIp,CreateTime" />
+      </Indexes>
+    </Table>
+  </Tables>
+</EntityModel>

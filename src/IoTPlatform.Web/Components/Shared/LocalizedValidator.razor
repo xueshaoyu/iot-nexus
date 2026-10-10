@@ -1,0 +1,74 @@
+@* 本地化的数据注解验证器，替代 DataAnnotationsValidator：按当前语言生成验证消息与字段名 *@
+@using System.ComponentModel.DataAnnotations
+@using System.Reflection
+@implements IDisposable
+
+@code {
+    [CascadingParameter] private EditContext? EditContext { get; set; }
+
+    private ValidationMessageStore? _store;
+    private EditContext? _bound;
+
+    protected override void OnParametersSet()
+    {
+        if (EditContext == null || ReferenceEquals(EditContext, _bound)) return;
+
+        Detach();
+        _bound = EditContext;
+        _store = new ValidationMessageStore(EditContext);
+        EditContext.OnValidationRequested += OnValidationRequested;
+        EditContext.OnFieldChanged += OnFieldChanged;
+    }
+
+    private void OnValidationRequested(object? sender, ValidationRequestedEventArgs e)
+    {
+        _store!.Clear();
+        foreach (var p in _bound!.Model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)) Validate(p);
+        _bound.NotifyValidationStateChanged();
+    }
+
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        if (!ReferenceEquals(e.FieldIdentifier.Model, _bound!.Model)) return;
+
+        var p = _bound.Model.GetType().GetProperty(e.FieldIdentifier.FieldName);
+        if (p == null) return;
+
+        _store!.Clear(e.FieldIdentifier);
+        Validate(p);
+        _bound.NotifyValidationStateChanged();
+    }
+
+    private void Validate(PropertyInfo property)
+    {
+        var field = new FieldIdentifier(_bound!.Model, property.Name);
+        var value = property.GetValue(_bound.Model);
+        var name = L[$"field.{property.Name}"].ResourceNotFound ? property.Name : L[$"field.{property.Name}"].Value;
+
+        foreach (var attr in property.GetCustomAttributes<ValidationAttribute>())
+        {
+            if (attr.IsValid(value)) continue;
+
+            _store!.Add(field, attr switch
+            {
+                _ when attr.ErrorMessage != null => L[attr.ErrorMessage, name],
+                RequiredAttribute => L["{0} is required", name],
+                StringLengthAttribute s => L["{0} must be at most {1} characters", name, s.MaximumLength],
+                RangeAttribute r => L["{0} must be between {1} and {2}", name, r.Minimum, r.Maximum],
+                MinLengthAttribute m => L["{0} needs at least {1} item(s)", name, m.Length],
+                RegularExpressionAttribute => L["{0} has an invalid format", name],
+                _ => L["{0} is invalid", name],
+            });
+        }
+    }
+
+    private void Detach()
+    {
+        if (_bound == null) return;
+
+        _bound.OnValidationRequested -= OnValidationRequested;
+        _bound.OnFieldChanged -= OnFieldChanged;
+    }
+
+    public void Dispose() => Detach();
+}

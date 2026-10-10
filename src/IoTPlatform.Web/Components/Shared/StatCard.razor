@@ -1,0 +1,21 @@
+<div class="card stat">
+    <div class="stat-icon tone-@Tone"><Icon Name="@IconName" Size="20" /></div>
+    <div style="min-width:0">
+        <div class="stat-label">@Label</div>
+        <div class="stat-value">@Value</div>
+        @if (Sub != null)
+        {
+            <div class="stat-sub">@Sub</div>
+        }
+        @ChildContent
+    </div>
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = "";
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public string? Sub { get; set; }
+    [Parameter] public string IconName { get; set; } = "activity";
+    [Parameter] public string Tone { get; set; } = "primary";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

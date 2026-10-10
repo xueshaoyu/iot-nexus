@@ -1,0 +1,70 @@
+<EditForm Model="Model" OnValidSubmit="OnSubmit" id="device-form">
+    <LocalizedValidator />
+    <ValidationSummary class="validation-errors" />
+    <div class="form-grid">
+        <div class="field">
+            <label>@L["Product *"]</label>
+            <InputSelect class="select" @bind-Value="Model.ProductId">
+                <option value="0">@L["Select a product…"]</option>
+                @foreach (var p in Product.FindAll())
+                {
+                    <option value="@p.Id">@p.Name (@p.Protocol)</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="field">
+            <label>@L["Group"]</label>
+            <GroupSelect @bind-Value="Model.GroupId" EmptyText="@L["No group"]" />
+        </div>
+        <div class="field">
+            <label>@L["Device code"]</label>
+            <InputText class="input mono" @bind-Value="Model.Code" placeholder="@L["auto-generated if empty"]" />
+            <span class="hint">@L["Unique DeviceName; MQTT username and topic segment"]</span>
+        </div>
+        <div class="field">
+            <label>@L["Display name"]</label>
+            <InputText class="input" @bind-Value="Model.Name" placeholder="@L["defaults to code"]" />
+        </div>
+        <div class="field">
+            <label>@L["Secret"]</label>
+            <InputText class="input mono" @bind-Value="Model.Secret" placeholder="@(IsEdit ? L["unchanged if empty"] : L["random if empty"])" />
+        </div>
+        <div class="field">
+            <label>@L["Location"]</label>
+            <InputText class="input" @bind-Value="Model.Location" />
+        </div>
+        @if (Product.FindById(Model.ProductId)?.Protocol == AccessProtocols.Mqtt)
+        {
+            <div class="field full">
+                <label>@L["MQTT broker"]</label>
+                <BrokerSelect @bind-Value="Model.BrokerProfileId" InheritLabel="@L["Inherit product / platform default"]" Hint="@L["Override the product default. Unset devices use the product setting, then the platform default (Embedded, or ActiveBroker when Mode=External)."]" />
+            </div>
+        }
+        @if (Product.FindById(Model.ProductId)?.Protocol == AccessProtocols.Driver)
+        {
+            <div class="field full">
+                <label>@L["Driver parameter overrides (JSON)"]</label>
+                <InputTextArea class="input" rows="3" @bind-Value="Model.DriverParameter" placeholder='{"Host":2}' />
+                <span class="hint">@L["Merged over the product defaults: {0}", Product.FindById(Model.ProductId)?.DriverParameter ?? "—"]</span>
+            </div>
+            <div class="field">
+                <label>@L["Poll interval (ms)"]</label>
+                <InputNumber class="input" @bind-Value="Model.PollInterval" />
+                <span class="hint">@L["0 = product setting"]</span>
+            </div>
+        }
+        <div class="field" style="justify-content:flex-end">
+            <label class="check"><InputCheckbox @bind-Value="Model.Enable" /> @L["Enabled"]</label>
+        </div>
+        <div class="field full">
+            <label>@L["Remark"]</label>
+            <InputText class="input" @bind-Value="Model.Remark" />
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public DeviceInput Model { get; set; } = new();
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public bool IsEdit { get; set; }
+}

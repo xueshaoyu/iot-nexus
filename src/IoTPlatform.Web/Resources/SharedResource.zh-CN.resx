@@ -1,0 +1,863 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <!-- Simplified Chinese translations. Key = English source text used in IStringLocalizer<SharedResource>. -->
+  <data name=" in {0}" xml:space="preserve"><value> 位于 {0}</value></data>
+  <data name="(any)" xml:space="preserve"><value>（任意）</value></data>
+  <data name="(not used)" xml:space="preserve"><value>（不适用）</value></data>
+  <data name="({0} direct)" xml:space="preserve"><value>（直属 {0}）</value></data>
+  <data name="({0} online)" xml:space="preserve"><value>（{0} 在线）</value></data>
+  <data name="+ Add action…" xml:space="preserve"><value>+ 添加动作…</value></data>
+  <data name="0 / 1" xml:space="preserve"><value>0 / 1</value></data>
+  <data name="0 = platform default" xml:space="preserve"><value>0 表示平台默认</value></data>
+  <data name="0 = product setting" xml:space="preserve"><value>0 表示使用产品配置</value></data>
+  <data name="0=Off,1=On" xml:space="preserve"><value>0=关,1=开</value></data>
+  <data name="2. Conditions" xml:space="preserve"><value>2. 条件</value></data>
+  <data name="4x0 (Modbus holding register 0)" xml:space="preserve"><value>4x0（Modbus 保持寄存器 0）</value></data>
+  <data name="A group cannot be moved under itself or its descendants" xml:space="preserve"><value>分组不能移动到自身或其子分组下</value></data>
+  <data name="A product defines the thing model (properties, events, services) and how its devices connect." xml:space="preserve"><value>产品定义物模型（属性、事件、服务）以及设备的接入方式。</value></data>
+  <data name="Access" xml:space="preserve"><value>访问</value></data>
+  <data name="Access protocol *" xml:space="preserve"><value>接入协议 *</value></data>
+  <data name="Acknowledge" xml:space="preserve"><value>确认</value></data>
+  <data name="Acknowledge alarm" xml:space="preserve"><value>确认告警</value></data>
+  <data name="Acknowledged" xml:space="preserve"><value>已确认</value></data>
+  <data name="ACL" xml:space="preserve"><value>访问控制</value></data>
+  <data name="Action '{0}' requires parameter '{1}'" xml:space="preserve"><value>动作“{0}”缺少参数“{1}”</value></data>
+  <data name="Actions" xml:space="preserve"><value>动作</value></data>
+  <data name="Active" xml:space="preserve"><value>未处理</value></data>
+  <data name="Active alarms" xml:space="preserve"><value>未处理告警</value></data>
+  <data name="Active today" xml:space="preserve"><value>今日活跃</value></data>
+  <data name="Add a protocol by referencing a NewLife.IoT driver package (e.g. NewLife.Siemens, NewLife.IoTSocket) or implementing IDriver / DriverBase&lt;TNode,TParameter&gt; with a [Driver(&quot;Name&quot;)] attribute. It is discovered at startup and becomes selectable on products." xml:space="preserve"><value>扩展协议：引用 NewLife.IoT 驱动包（如 NewLife.Siemens、NewLife.IoTSocket），或实现 IDriver / DriverBase&lt;TNode,TParameter&gt; 并标注 [Driver("Name")] 特性。启动时自动发现，即可在产品中选择。</value></data>
+  <data name="Add at least one action." xml:space="preserve"><value>请至少添加一个动作。</value></data>
+  <data name="Add condition" xml:space="preserve"><value>添加条件</value></data>
+  <data name="Add devices" xml:space="preserve"><value>添加设备</value></data>
+  <data name="Add devices to {0}" xml:space="preserve"><value>向 {0} 添加设备</value></data>
+  <data name="Add event" xml:space="preserve"><value>添加事件</value></data>
+  <data name="Add parameter" xml:space="preserve"><value>添加参数</value></data>
+  <data name="Add properties such as temperature or switch." xml:space="preserve"><value>添加温度、开关等属性。</value></data>
+  <data name="Add properties to the product's thing model." xml:space="preserve"><value>请在产品物模型中添加属性。</value></data>
+  <data name="Add property" xml:space="preserve"><value>添加属性</value></data>
+  <data name="Add service" xml:space="preserve"><value>添加服务</value></data>
+  <data name="Add sub-group" xml:space="preserve"><value>添加子分组</value></data>
+  <data name="Adjust the filters or register a new device." xml:space="preserve"><value>调整筛选条件，或注册新设备。</value></data>
+  <data name="Admin login" xml:space="preserve"><value>管理账号</value></data>
+  <data name="After firing for a device, suppress repeats for this long." xml:space="preserve"><value>对同一设备触发后，在此时间内不再重复触发。</value></data>
+  <data name="Alarm" xml:space="preserve"><value>告警</value></data>
+  <data name="Alarm acknowledged" xml:space="preserve"><value>告警已确认</value></data>
+  <data name="Alarm closed" xml:space="preserve"><value>告警已关闭</value></data>
+  <data name="Alarm not found" xml:space="preserve"><value>告警不存在</value></data>
+  <data name="Alarms" xml:space="preserve"><value>告警</value></data>
+  <data name="Alarms in range" xml:space="preserve"><value>区间告警数</value></data>
+  <data name="Alarms raised by rules will appear here." xml:space="preserve"><value>规则产生的告警将显示在这里。</value></data>
+  <data name="Alarms · NewLife IoT" xml:space="preserve"><value>告警 · NewLife 物联网</value></data>
+  <data name="Alert" xml:space="preserve"><value>告警</value></data>
+  <data name="Aliyun Alink JSON (thing.event.property.post / thing.service.*)" xml:space="preserve"><value>阿里云 Alink JSON（thing.event.property.post / thing.service.*）</value></data>
+  <data name="All alarms" xml:space="preserve"><value>全部告警</value></data>
+  <data name="all devices" xml:space="preserve"><value>全部设备</value></data>
+  <data name="All devices in scope" xml:space="preserve"><value>作用域内全部设备</value></data>
+  <data name="All groups" xml:space="preserve"><value>全部分组</value></data>
+  <data name="All groups (includes sub-groups)" xml:space="preserve"><value>全部分组（含子分组）</value></data>
+  <data name="All levels" xml:space="preserve"><value>全部级别</value></data>
+  <data name="All products" xml:space="preserve"><value>全部产品</value></data>
+  <data name="All protocols" xml:space="preserve"><value>全部协议</value></data>
+  <data name="All statuses" xml:space="preserve"><value>全部状态</value></data>
+  <data name="always" xml:space="preserve"><value>始终</value></data>
+  <data name="An error occurred while processing your request." xml:space="preserve"><value>处理请求时发生错误。</value></data>
+  <data name="An unhandled error has occurred." xml:space="preserve"><value>发生了未处理的错误。</value></data>
+  <data name="AND" xml:space="preserve"><value>且</value></data>
+  <data name="any (PINGREQ also counts)" xml:space="preserve"><value>任意（PINGREQ 同样有效）</value></data>
+  <data name="any device" xml:space="preserve"><value>任意设备</value></data>
+  <data name="any event" xml:space="preserve"><value>任意事件</value></data>
+  <data name="Any status" xml:space="preserve"><value>全部状态</value></data>
+  <data name="any {0}" xml:space="preserve"><value>任意{0}</value></data>
+  <data name="Api" xml:space="preserve"><value>接口</value></data>
+  <data name="Append a message to the device history timeline and the platform log." xml:space="preserve"><value>向设备历史时间线和平台日志写入一条消息。</value></data>
+  <data name="Arguments (JSON)" xml:space="preserve"><value>参数（JSON）</value></data>
+  <data name="async" xml:space="preserve"><value>异步</value></data>
+  <data name="At least one action is required" xml:space="preserve"><value>至少需要一个动作</value></data>
+  <data name="at most once every {0} s per device" xml:space="preserve"><value>每台设备最多每 {0} 秒触发一次</value></data>
+  <data name="Auth" xml:space="preserve"><value>认证</value></data>
+  <data name="auto-generated if empty" xml:space="preserve"><value>留空自动生成</value></data>
+  <data name="Automation" xml:space="preserve"><value>自动化</value></data>
+  <data name="Back to dashboard" xml:space="preserve"><value>返回概览</value></data>
+  <data name="Back to devices" xml:space="preserve"><value>返回设备列表</value></data>
+  <data name="Back to products" xml:space="preserve"><value>返回产品列表</value></data>
+  <data name="Back to rules" xml:space="preserve"><value>返回规则列表</value></data>
+  <data name="Basics &amp; trigger" xml:space="preserve"><value>基本信息与触发</value></data>
+  <data name="Batch register" xml:space="preserve"><value>批量注册</value></data>
+  <data name="Batch register devices" xml:space="preserve"><value>批量注册设备</value></data>
+  <data name="Body" xml:space="preserve"><value>请求体</value></data>
+  <data name="Buckets" xml:space="preserve"><value>统计明细</value></data>
+  <data name="Built-in NewLife.MQTT broker, HTTP access API and NewLife.IoT protocol drivers — three ways for devices to reach the platform." xml:space="preserve"><value>内置 NewLife.MQTT 服务端、HTTP 接入接口与 NewLife.IoT 协议驱动——设备接入平台的三种方式。</value></data>
+  <data name="By product" xml:space="preserve"><value>按产品</value></data>
+  <data name="Call" xml:space="preserve"><value>调用</value></data>
+  <data name="Call a service defined in the thing model on the triggering device or another device." xml:space="preserve"><value>在触发设备或其它设备上调用物模型中定义的服务。</value></data>
+  <data name="Call type" xml:space="preserve"><value>调用方式</value></data>
+  <data name="Cancel" xml:space="preserve"><value>取消</value></data>
+  <data name="capabilities the platform can invoke remotely" xml:space="preserve"><value>平台可远程调用的设备能力</value></data>
+  <data name="Category" xml:space="preserve"><value>类别</value></data>
+  <data name="changed" xml:space="preserve"><value>变化</value></data>
+  <data name="Class" xml:space="preserve"><value>类名</value></data>
+  <data name="Client ID" xml:space="preserve"><value>客户端 ID</value></data>
+  <data name="Close" xml:space="preserve"><value>关闭</value></data>
+  <data name="Close alarm" xml:space="preserve"><value>关闭告警</value></data>
+  <data name="Closed" xml:space="preserve"><value>已关闭</value></data>
+  <data name="Code only allows letters, digits, '_' and '-'" xml:space="preserve"><value>编码只能包含字母、数字、“_”和“-”</value></data>
+  <data name="Code only allows letters, digits, '_', '-' and '.'" xml:space="preserve"><value>编码只能包含字母、数字、“_”、“-”和“.”</value></data>
+  <data name="Code prefix *" xml:space="preserve"><value>编码前缀 *</value></data>
+  <data name="Code, name, IP or location" xml:space="preserve"><value>编码、名称、IP 或位置</value></data>
+  <data name="Codec" xml:space="preserve"><value>编解码</value></data>
+  <data name="Codecs" xml:space="preserve"><value>编解码器</value></data>
+  <data name="Command" xml:space="preserve"><value>指令</value></data>
+  <data name="Command log" xml:space="preserve"><value>指令记录</value></data>
+  <data name="Conditions met (dry run, actions not executed)" xml:space="preserve"><value>条件满足（试运行，未执行动作）</value></data>
+  <data name="Conditions not met" xml:space="preserve"><value>条件不满足</value></data>
+  <data name="Connected clients" xml:space="preserve"><value>已连接客户端</value></data>
+  <data name="Connection" xml:space="preserve"><value>接入信息</value></data>
+  <data name="Connectivity" xml:space="preserve"><value>接入</value></data>
+  <data name="Console" xml:space="preserve"><value>控制台</value></data>
+  <data name="contains" xml:space="preserve"><value>包含</value></data>
+  <data name="Content" xml:space="preserve"><value>内容</value></data>
+  <data name="Count *" xml:space="preserve"><value>数量 *</value></data>
+  <data name="Create a product to define a thing model and start registering devices." xml:space="preserve"><value>创建产品以定义物模型并开始注册设备。</value></data>
+  <data name="Create a product with protocol “Driver” and register devices." xml:space="preserve"><value>创建接入协议为“驱动采集”的产品并注册设备。</value></data>
+  <data name="Create a rule such as “temperature &gt; 30 → raise alarm”." xml:space="preserve"><value>创建规则，例如“温度 &gt; 30 → 产生告警”。</value></data>
+  <data name="Create a top-level group to start organising devices." xml:space="preserve"><value>创建顶级分组，开始组织设备。</value></data>
+  <data name="Create an alarm record (merged while an active alarm exists for the same rule and device)." xml:space="preserve"><value>产生告警记录（同一规则同一设备存在未处理告警时合并）。</value></data>
+  <data name="Create product" xml:space="preserve"><value>创建产品</value></data>
+  <data name="Create rule" xml:space="preserve"><value>创建规则</value></data>
+  <data name="Created" xml:space="preserve"><value>创建时间</value></data>
+  <data name="Creates devices named {0}-001, {0}-002… with random secrets. Existing codes are skipped." xml:space="preserve"><value>将创建 {0}-001、{0}-002… 等设备，并生成随机密钥。已存在的编码会被跳过。</value></data>
+  <data name="Credentials" xml:space="preserve"><value>认证方式</value></data>
+  <data name="Critical" xml:space="preserve"><value>严重</value></data>
+  <data name="Critical (active)" xml:space="preserve"><value>严重（未处理）</value></data>
+  <data name="Current: {0}" xml:space="preserve"><value>当前值：{0}</value></data>
+  <data name="Dashboard" xml:space="preserve"><value>概览</value></data>
+  <data name="Dashboard · NewLife IoT" xml:space="preserve"><value>概览 · NewLife 物联网</value></data>
+  <data name="Data" xml:space="preserve"><value>数据</value></data>
+  <data name="Data type *" xml:space="preserve"><value>数据类型 *</value></data>
+  <data name="Day" xml:space="preserve"><value>日期</value></data>
+  <data name="Default parameters" xml:space="preserve"><value>默认参数</value></data>
+  <data name="Default parameters for all devices of this product. Devices can override individual keys." xml:space="preserve"><value>该产品下所有设备的默认参数，设备可覆盖其中的个别键。</value></data>
+  <data name="defaults to code" xml:space="preserve"><value>默认与编码相同</value></data>
+  <data name="Define a product to start registering devices." xml:space="preserve"><value>定义产品后即可注册设备。</value></data>
+  <data name="Define services on the product." xml:space="preserve"><value>请在产品上定义服务。</value></data>
+  <data name="Delete" xml:space="preserve"><value>删除</value></data>
+  <data name="Delete device {0}?" xml:space="preserve"><value>确定删除设备 {0}？</value></data>
+  <data name="Delete device {0}? History data is kept until retention cleanup." xml:space="preserve"><value>确定删除设备 {0}？历史数据将保留至过期清理。</value></data>
+  <data name="Delete event '{0}'?" xml:space="preserve"><value>确定删除事件“{0}”？</value></data>
+  <data name="Delete group '{0}'? Its sub-groups and devices move to the parent group." xml:space="preserve"><value>确定删除分组“{0}”？其子分组和设备将移到上级分组。</value></data>
+  <data name="Delete product '{0}' and its thing model?" xml:space="preserve"><value>确定删除产品“{0}”及其物模型？</value></data>
+  <data name="Delete property '{0}'?" xml:space="preserve"><value>确定删除属性“{0}”？</value></data>
+  <data name="Delete rule '{0}'?" xml:space="preserve"><value>确定删除规则“{0}”？</value></data>
+  <data name="Delete service '{0}'?" xml:space="preserve"><value>确定删除服务“{0}”？</value></data>
+  <data name="Description" xml:space="preserve"><value>描述</value></data>
+  <data name="Details" xml:space="preserve"><value>详情</value></data>
+  <data name="Device" xml:space="preserve"><value>设备</value></data>
+  <data name="Device activity" xml:space="preserve"><value>设备动态</value></data>
+  <data name="Device code" xml:space="preserve"><value>设备编码</value></data>
+  <data name="Device code '{0}' already exists" xml:space="preserve"><value>设备编码“{0}”已存在</value></data>
+  <data name="Device counts, online rate and message volume, aggregated per hour and per day (DeviceStat table, flushed every minute)." xml:space="preserve"><value>设备数、在线率与消息量，按小时和天汇总（DeviceStat 表，每分钟落库）。</value></data>
+  <data name="Device deleted" xml:space="preserve"><value>设备已删除</value></data>
+  <data name="Device disabled" xml:space="preserve"><value>设备已禁用</value></data>
+  <data name="Device enabled" xml:space="preserve"><value>设备已启用</value></data>
+  <data name="Device event" xml:space="preserve"><value>设备事件</value></data>
+  <data name="Device event — e.g. overheat" xml:space="preserve"><value>设备事件——例如过热</value></data>
+  <data name="Device goes offline" xml:space="preserve"><value>设备下线</value></data>
+  <data name="Device goes online" xml:space="preserve"><value>设备上线</value></data>
+  <data name="Device groups" xml:space="preserve"><value>设备分组</value></data>
+  <data name="Device HTTP access API" xml:space="preserve"><value>设备 HTTP 接入接口</value></data>
+  <data name="Device is disabled" xml:space="preserve"><value>设备已禁用</value></data>
+  <data name="Device is offline" xml:space="preserve"><value>设备离线</value></data>
+  <data name="Device is offline — commands will fail until it reconnects." xml:space="preserve"><value>设备离线——重新连接前指令将下发失败。</value></data>
+  <data name="Device is outside the rule scope" xml:space="preserve"><value>设备不在规则作用范围内</value></data>
+  <data name="Device login" xml:space="preserve"><value>设备登录</value></data>
+  <data name="Device management platform" xml:space="preserve"><value>设备管理平台</value></data>
+  <data name="Device not found" xml:space="preserve"><value>设备不存在</value></data>
+  <data name="Device registered" xml:space="preserve"><value>设备已注册</value></data>
+  <data name="Device scope" xml:space="preserve"><value>设备范围</value></data>
+  <data name="device shadow · refreshes every 2s" xml:space="preserve"><value>设备影子 · 每 2 秒刷新</value></data>
+  <data name="Device timestamp" xml:space="preserve"><value>设备时间戳</value></data>
+  <data name="Device updated" xml:space="preserve"><value>设备已更新</value></data>
+  <data name="device {0}" xml:space="preserve"><value>设备 {0}</value></data>
+  <data name="Devices" xml:space="preserve"><value>设备</value></data>
+  <data name="Devices ({0})" xml:space="preserve"><value>设备（{0}）</value></data>
+  <data name="Devices · NewLife IoT" xml:space="preserve"><value>设备 · NewLife 物联网</value></data>
+  <data name="direct" xml:space="preserve"><value>直属</value></data>
+  <data name="Direction" xml:space="preserve"><value>方向</value></data>
+  <data name="Disable" xml:space="preserve"><value>禁用</value></data>
+  <data name="Disable {0}? Its connection will be closed and further data rejected." xml:space="preserve"><value>确定禁用 {0}？其连接将被断开，后续数据将被拒绝。</value></data>
+  <data name="Disable {0}? Its connection will be closed." xml:space="preserve"><value>确定禁用 {0}？其连接将被断开。</value></data>
+  <data name="Disabled" xml:space="preserve"><value>已禁用</value></data>
+  <data name="discovered via DriverFactory.ScanAll()" xml:space="preserve"><value>由 DriverFactory.ScanAll() 自动发现</value></data>
+  <data name="Dismiss" xml:space="preserve"><value>关闭</value></data>
+  <data name="Display name" xml:space="preserve"><value>显示名称</value></data>
+  <data name="down" xml:space="preserve"><value>下行</value></data>
+  <data name="Downlink topics" xml:space="preserve"><value>下行主题</value></data>
+  <data name="Driver" xml:space="preserve"><value>驱动采集</value></data>
+  <data name="Driver *" xml:space="preserve"><value>驱动 *</value></data>
+  <data name="Driver is not running for this device" xml:space="preserve"><value>该设备的驱动未运行</value></data>
+  <data name="Driver parameter overrides (JSON)" xml:space="preserve"><value>驱动参数覆盖（JSON）</value></data>
+  <data name="Driver parameters (JSON)" xml:space="preserve"><value>驱动参数（JSON）</value></data>
+  <data name="Driver workers" xml:space="preserve"><value>采集任务</value></data>
+  <data name="Driver — platform polls via NewLife.IoT driver" xml:space="preserve"><value>驱动采集——平台通过 NewLife.IoT 驱动轮询</value></data>
+  <data name="DriverName is required for Driver protocol products" xml:space="preserve"><value>驱动采集产品必须选择驱动</value></data>
+  <data name="DriverParameter must be a JSON object" xml:space="preserve"><value>驱动参数必须是 JSON 对象</value></data>
+  <data name="Drivers" xml:space="preserve"><value>驱动</value></data>
+  <data name="Dry run" xml:space="preserve"><value>试运行</value></data>
+  <data name="e.g. alerts/{product.code}/{device.code}" xml:space="preserve"><value>例如 alerts/{product.code}/{device.code}</value></data>
+  <data name="e.g. Environment Sensor" xml:space="preserve"><value>例如：温湿度传感器</value></data>
+  <data name="e.g. Technician dispatched" xml:space="preserve"><value>例如：已派维修人员</value></data>
+  <data name="e.g. {&quot;level&quot;:1}" xml:space="preserve"><value>例如 {"level":1}</value></data>
+  <data name="Edit" xml:space="preserve"><value>编辑</value></data>
+  <data name="Edit device" xml:space="preserve"><value>编辑设备</value></data>
+  <data name="Edit event" xml:space="preserve"><value>编辑事件</value></data>
+  <data name="Edit group" xml:space="preserve"><value>编辑分组</value></data>
+  <data name="Edit product" xml:space="preserve"><value>编辑产品</value></data>
+  <data name="Edit property" xml:space="preserve"><value>编辑属性</value></data>
+  <data name="Edit rule" xml:space="preserve"><value>编辑规则</value></data>
+  <data name="Edit service" xml:space="preserve"><value>编辑服务</value></data>
+  <data name="Empty = the triggering device" xml:space="preserve"><value>留空表示触发设备本身</value></data>
+  <data name="Enable" xml:space="preserve"><value>启用</value></data>
+  <data name="Enabled" xml:space="preserve"><value>已启用</value></data>
+  <data name="Enabled &amp; disabled" xml:space="preserve"><value>启用与禁用</value></data>
+  <data name="Endpoint" xml:space="preserve"><value>接入地址</value></data>
+  <data name="Endpoints" xml:space="preserve"><value>接口</value></data>
+  <data name="Engineering value = raw × scaling (0 = none)" xml:space="preserve"><value>工程值 = 原始值 × 缩放因子（0 表示不缩放）</value></data>
+  <data name="Enum mapping" xml:space="preserve"><value>枚举映射</value></data>
+  <data name="Error" xml:space="preserve"><value>错误</value></data>
+  <data name="Error · NewLife IoT" xml:space="preserve"><value>错误 · NewLife 物联网</value></data>
+  <data name="Event" xml:space="preserve"><value>事件</value></data>
+  <data name="Event '{0}' already exists" xml:space="preserve"><value>事件“{0}”已存在</value></data>
+  <data name="Event deleted" xml:space="preserve"><value>事件已删除</value></data>
+  <data name="Event name" xml:space="preserve"><value>事件名</value></data>
+  <data name="Event not found" xml:space="preserve"><value>事件不存在</value></data>
+  <data name="Event saved" xml:space="preserve"><value>事件已保存</value></data>
+  <data name="Events" xml:space="preserve"><value>事件</value></data>
+  <data name="Events can trigger rules (e.g. overheat → alarm)." xml:space="preserve"><value>事件可触发规则（例如过热 → 告警）。</value></data>
+  <data name="Example (mosquitto clients):" xml:space="preserve"><value>示例（mosquitto 客户端）：</value></data>
+  <data name="Export" xml:space="preserve"><value>导出</value></data>
+  <data name="extra" xml:space="preserve"><value>额外</value></data>
+  <data name="Failed" xml:space="preserve"><value>失败</value></data>
+  <data name="field.Category" xml:space="preserve"><value>类别</value></data>
+  <data name="field.Code" xml:space="preserve"><value>编码</value></data>
+  <data name="field.Count" xml:space="preserve"><value>数量</value></data>
+  <data name="field.DataType" xml:space="preserve"><value>数据类型</value></data>
+  <data name="field.DeviceIds" xml:space="preserve"><value>设备</value></data>
+  <data name="field.Identifier" xml:space="preserve"><value>标识符</value></data>
+  <data name="field.Max" xml:space="preserve"><value>最大值</value></data>
+  <data name="field.Min" xml:space="preserve"><value>最小值</value></data>
+  <data name="field.Name" xml:space="preserve"><value>名称</value></data>
+  <data name="field.OnlineTimeout" xml:space="preserve"><value>离线超时</value></data>
+  <data name="field.PollInterval" xml:space="preserve"><value>采集间隔</value></data>
+  <data name="field.Prefix" xml:space="preserve"><value>编码前缀</value></data>
+  <data name="field.ProductId" xml:space="preserve"><value>产品</value></data>
+  <data name="field.Protocol" xml:space="preserve"><value>接入协议</value></data>
+  <data name="field.Remark" xml:space="preserve"><value>备注</value></data>
+  <data name="field.Secret" xml:space="preserve"><value>密钥</value></data>
+  <data name="field.Service" xml:space="preserve"><value>服务</value></data>
+  <data name="field.SilenceSeconds" xml:space="preserve"><value>静默期</value></data>
+  <data name="field.TriggerType" xml:space="preserve"><value>触发方式</value></data>
+  <data name="field.Values" xml:space="preserve"><value>属性值</value></data>
+  <data name="field.WaitSeconds" xml:space="preserve"><value>等待秒数</value></data>
+  <data name="Filter devices" xml:space="preserve"><value>筛选设备</value></data>
+  <data name="For products with protocol HTTP. Authenticate with header X-Device-Secret. Payloads use the product codec, exactly like MQTT." xml:space="preserve"><value>适用于接入协议为 HTTP 的产品。使用请求头 X-Device-Secret 认证，载荷格式由产品编解码器决定，与 MQTT 一致。</value></data>
+  <data name="Generate a new secret? The device must be reconfigured and will be disconnected." xml:space="preserve"><value>确定生成新密钥？设备需重新配置，当前连接将被断开。</value></data>
+  <data name="Generates sine-wave values inside each property's min/max range. No hardware required." xml:space="preserve"><value>在每个属性的最小/最大值范围内生成正弦波数据，无需硬件。</value></data>
+  <data name="Goes offline" xml:space="preserve"><value>设备下线</value></data>
+  <data name="Goes online" xml:space="preserve"><value>设备上线</value></data>
+  <data name="Group" xml:space="preserve"><value>分组</value></data>
+  <data name="Group '{0}' already exists at this level" xml:space="preserve"><value>同级分组“{0}”已存在</value></data>
+  <data name="Group deleted" xml:space="preserve"><value>分组已删除</value></data>
+  <data name="Group not found" xml:space="preserve"><value>分组不存在</value></data>
+  <data name="Group saved" xml:space="preserve"><value>分组已保存</value></data>
+  <data name="Group scope" xml:space="preserve"><value>分组范围</value></data>
+  <data name="group {0}" xml:space="preserve"><value>分组 {0}</value></data>
+  <data name="Groups" xml:space="preserve"><value>分组</value></data>
+  <data name="Groups · NewLife IoT" xml:space="preserve"><value>分组 · NewLife 物联网</value></data>
+  <data name="Header" xml:space="preserve"><value>请求头</value></data>
+  <data name="Health" xml:space="preserve"><value>健康状况</value></data>
+  <data name="healthy" xml:space="preserve"><value>正常</value></data>
+  <data name="Hide" xml:space="preserve"><value>隐藏</value></data>
+  <data name="Hierarchy" xml:space="preserve"><value>层级结构</value></data>
+  <data name="High temperature alarm" xml:space="preserve"><value>高温告警</value></data>
+  <data name="History" xml:space="preserve"><value>历史</value></data>
+  <data name="History data" xml:space="preserve"><value>历史数据</value></data>
+  <data name="Hour" xml:space="preserve"><value>小时</value></data>
+  <data name="How devices connect" xml:space="preserve"><value>设备接入方式</value></data>
+  <data name="HTTP" xml:space="preserve"><value>HTTP</value></data>
+  <data name="HTTP access" xml:space="preserve"><value>HTTP 接入</value></data>
+  <data name="HTTP base" xml:space="preserve"><value>HTTP 地址</value></data>
+  <data name="HTTP — devices call the REST access API" xml:space="preserve"><value>HTTP——设备调用 REST 接入接口</value></data>
+  <data name="http(s) endpoint" xml:space="preserve"><value>http(s) 地址</value></data>
+  <data name="Identifier" xml:space="preserve"><value>标识符</value></data>
+  <data name="Identifier *" xml:space="preserve"><value>标识符 *</value></data>
+  <data name="Identifier must be a valid identifier" xml:space="preserve"><value>标识符必须以字母或下划线开头，只能包含字母、数字和下划线</value></data>
+  <data name="Identifier of a read-write property" xml:space="preserve"><value>读写属性的标识符</value></data>
+  <data name="implement IPayloadCodec to add formats" xml:space="preserve"><value>实现 IPayloadCodec 即可扩展格式</value></data>
+  <data name="Import" xml:space="preserve"><value>导入</value></data>
+  <data name="Import thing model" xml:space="preserve"><value>导入物模型</value></data>
+  <data name="Imported {0} properties, {1} events, {2} services" xml:space="preserve"><value>已导入 {0} 个属性、{1} 个事件、{2} 个服务</value></data>
+  <data name="Info" xml:space="preserve"><value>信息</value></data>
+  <data name="Info / Warning / Critical" xml:space="preserve"><value>信息 / 警告 / 严重</value></data>
+  <data name="Input" xml:space="preserve"><value>输入</value></data>
+  <data name="Input parameters" xml:space="preserve"><value>输入参数</value></data>
+  <data name="Interval" xml:space="preserve"><value>间隔</value></data>
+  <data name="Invalid ThingSpec JSON: {0}" xml:space="preserve"><value>ThingSpec JSON 无效：{0}</value></data>
+  <data name="invalid url" xml:space="preserve"><value>无效的 URL</value></data>
+  <data name="Invoke" xml:space="preserve"><value>调用</value></data>
+  <data name="Invoke a service or set a read-write property." xml:space="preserve"><value>调用服务或设置读写属性。</value></data>
+  <data name="Invoke device service" xml:space="preserve"><value>调用设备服务</value></data>
+  <data name="Invoke service" xml:space="preserve"><value>调用服务</value></data>
+  <data name="IP address" xml:space="preserve"><value>IP 地址</value></data>
+  <data name="It may have been deleted." xml:space="preserve"><value>它可能已被删除。</value></data>
+  <data name="just now" xml:space="preserve"><value>刚刚</value></data>
+  <data name="Language" xml:space="preserve"><value>语言</value></data>
+  <data name="Last 24 hours" xml:space="preserve"><value>最近 24 小时</value></data>
+  <data name="Last 30 days" xml:space="preserve"><value>最近 30 天</value></data>
+  <data name="Last 7 days" xml:space="preserve"><value>最近 7 天</value></data>
+  <data name="Last 72 hours" xml:space="preserve"><value>最近 72 小时</value></data>
+  <data name="Last active" xml:space="preserve"><value>最后活跃</value></data>
+  <data name="Last offline" xml:space="preserve"><value>最后下线</value></data>
+  <data name="last offline {0}" xml:space="preserve"><value>最后下线 {0}</value></data>
+  <data name="Last online" xml:space="preserve"><value>最后上线</value></data>
+  <data name="Last read" xml:space="preserve"><value>最后采集</value></data>
+  <data name="Last update" xml:space="preserve"><value>最后更新</value></data>
+  <data name="latest 120 samples" xml:space="preserve"><value>最近 120 条</value></data>
+  <data name="Level" xml:space="preserve"><value>级别</value></data>
+  <data name="Lifecycle timeline" xml:space="preserve"><value>生命周期时间线</value></data>
+  <data name="Live overview of devices, messages and alarms. Refreshes every 3 seconds." xml:space="preserve"><value>设备、消息与告警的实时概览，每 3 秒刷新。</value></data>
+  <data name="Live properties" xml:space="preserve"><value>实时属性</value></data>
+  <data name="Loading…" xml:space="preserve"><value>加载中…</value></data>
+  <data name="Location" xml:space="preserve"><value>位置</value></data>
+  <data name="Manage" xml:space="preserve"><value>管理</value></data>
+  <data name="Match ALL conditions" xml:space="preserve"><value>满足全部条件</value></data>
+  <data name="Match ANY condition" xml:space="preserve"><value>满足任一条件</value></data>
+  <data name="Matched" xml:space="preserve"><value>命中</value></data>
+  <data name="Max" xml:space="preserve"><value>最大值</value></data>
+  <data name="Max must be greater than or equal to Min" xml:space="preserve"><value>最大值必须大于或等于最小值</value></data>
+  <data name="Merged over the product defaults: {0}" xml:space="preserve"><value>与产品默认参数合并：{0}</value></data>
+  <data name="merges by identifier" xml:space="preserve"><value>按标识符合并</value></data>
+  <data name="Message" xml:space="preserve"><value>消息</value></data>
+  <data name="Message volume" xml:space="preserve"><value>消息量</value></data>
+  <data name="Messages" xml:space="preserve"><value>消息数</value></data>
+  <data name="Messages in / out" xml:space="preserve"><value>收 / 发消息</value></data>
+  <data name="Messages in range" xml:space="preserve"><value>区间消息量</value></data>
+  <data name="Messages today" xml:space="preserve"><value>今日消息</value></data>
+  <data name="Min" xml:space="preserve"><value>最小值</value></data>
+  <data name="Move devices to group" xml:space="preserve"><value>移动设备到分组</value></data>
+  <data name="Move to group" xml:space="preserve"><value>移动到分组</value></data>
+  <data name="Move {0} device(s)" xml:space="preserve"><value>移动 {0} 台设备</value></data>
+  <data name="Moved {0} device(s)" xml:space="preserve"><value>已移动 {0} 台设备</value></data>
+  <data name="Moved {0} device(s) into {1}" xml:space="preserve"><value>已将 {0} 台设备移入 {1}</value></data>
+  <data name="MQTT" xml:space="preserve"><value>MQTT</value></data>
+  <data name="MQTT :{0} · {1} client(s)" xml:space="preserve"><value>MQTT :{0} · {1} 个客户端</value></data>
+  <data name="MQTT broker" xml:space="preserve"><value>MQTT 服务端</value></data>
+  <data name="MQTT server" xml:space="preserve"><value>MQTT 服务器</value></data>
+  <data name="MQTT server is not running" xml:space="preserve"><value>MQTT 服务端未运行</value></data>
+  <data name="MQTT — devices publish to the built-in broker" xml:space="preserve"><value>MQTT——设备发布到内置服务端</value></data>
+  <data name="Name" xml:space="preserve"><value>名称</value></data>
+  <data name="Name *" xml:space="preserve"><value>名称 *</value></data>
+  <data name="never" xml:space="preserve"><value>从未</value></data>
+  <data name="New group" xml:space="preserve"><value>新建分组</value></data>
+  <data name="New product" xml:space="preserve"><value>新建产品</value></data>
+  <data name="New rule" xml:space="preserve"><value>新建规则</value></data>
+  <data name="New value" xml:space="preserve"><value>新值</value></data>
+  <data name="NewLife IoT" xml:space="preserve"><value>NewLife 物联网</value></data>
+  <data name="NewLife.IoT ThingSpec" xml:space="preserve"><value>NewLife.IoT 物模型规范</value></data>
+  <data name="Next" xml:space="preserve"><value>下一页</value></data>
+  <data name="No actions" xml:space="preserve"><value>暂无动作</value></data>
+  <data name="no active session" xml:space="preserve"><value>无活动会话</value></data>
+  <data name="No activity yet" xml:space="preserve"><value>暂无动态</value></data>
+  <data name="No alarms" xml:space="preserve"><value>暂无告警</value></data>
+  <data name="No clients connected" xml:space="preserve"><value>暂无客户端连接</value></data>
+  <data name="No commands sent yet" xml:space="preserve"><value>尚未下发指令</value></data>
+  <data name="no data" xml:space="preserve"><value>暂无数据</value></data>
+  <data name="No description" xml:space="preserve"><value>暂无描述</value></data>
+  <data name="No devices in this group" xml:space="preserve"><value>该分组暂无设备</value></data>
+  <data name="No devices match" xml:space="preserve"><value>没有匹配的设备</value></data>
+  <data name="No driver devices running" xml:space="preserve"><value>没有运行中的驱动设备</value></data>
+  <data name="No events" xml:space="preserve"><value>暂无事件</value></data>
+  <data name="No events reported" xml:space="preserve"><value>暂无事件上报</value></data>
+  <data name="No group" xml:space="preserve"><value>不分组</value></data>
+  <data name="No groups yet" xml:space="preserve"><value>暂无分组</value></data>
+  <data name="No heartbeat/data for this long → offline. 0 = global default." xml:space="preserve"><value>超过该时长无心跳或数据即判定离线，0 表示使用全局配置。</value></data>
+  <data name="No history" xml:space="preserve"><value>暂无历史</value></data>
+  <data name="No products" xml:space="preserve"><value>暂无产品</value></data>
+  <data name="No products found" xml:space="preserve"><value>未找到产品</value></data>
+  <data name="No properties" xml:space="preserve"><value>暂无属性</value></data>
+  <data name="No properties defined" xml:space="preserve"><value>未定义属性</value></data>
+  <data name="No rule has fired yet" xml:space="preserve"><value>尚无规则触发</value></data>
+  <data name="No rules yet" xml:space="preserve"><value>暂无规则</value></data>
+  <data name="No services" xml:space="preserve"><value>暂无服务</value></data>
+  <data name="No statistics yet" xml:space="preserve"><value>暂无统计数据</value></data>
+  <data name="Not enough numeric data" xml:space="preserve"><value>数值数据不足</value></data>
+  <data name="Not matched" xml:space="preserve"><value>未命中</value></data>
+  <data name="Not triggered yet" xml:space="preserve"><value>尚未触发</value></data>
+  <data name="Note" xml:space="preserve"><value>备注</value></data>
+  <data name="Nothing here yet" xml:space="preserve"><value>暂无内容</value></data>
+  <data name="Nothing matches the current filters." xml:space="preserve"><value>没有符合当前筛选条件的记录。</value></data>
+  <data name="notifications and alerts pushed by devices" xml:space="preserve"><value>设备主动上报的通知与告警</value></data>
+  <data name="Numbers compare numerically, other values compare as text. “changed” fires when the reported value differs from the previous one. A property rule only evaluates when at least one referenced property is in the report." xml:space="preserve"><value>数字按数值比较，其它按文本比较。“changed”（变化）在上报值与上一次不同时触发。属性规则仅在本次上报包含至少一个被引用的属性时才求值。</value></data>
+  <data name="Off" xml:space="preserve"><value>关</value></data>
+  <data name="Offline" xml:space="preserve"><value>离线</value></data>
+  <data name="Offline timeout" xml:space="preserve"><value>离线超时</value></data>
+  <data name="Offline timeout (s)" xml:space="preserve"><value>离线超时（秒）</value></data>
+  <data name="ok" xml:space="preserve"><value>成功</value></data>
+  <data name="On" xml:space="preserve"><value>开</value></data>
+  <data name="one per enabled Driver-protocol device · reconciled every 10s" xml:space="preserve"><value>每台启用的驱动设备一个任务 · 每 10 秒对账</value></data>
+  <data name="Online" xml:space="preserve"><value>在线</value></data>
+  <data name="online / offline / rules / commands" xml:space="preserve"><value>上线 / 下线 / 规则 / 指令</value></data>
+  <data name="Online devices (peak, right scale max {0})" xml:space="preserve"><value>在线设备（峰值，最大刻度 {0}）</value></data>
+  <data name="Online rate" xml:space="preserve"><value>在线率</value></data>
+  <data name="Online time" xml:space="preserve"><value>在线时长</value></data>
+  <data name="online/offline, enable/disable, commands, rule triggers" xml:space="preserve"><value>上下线、启停、指令、规则触发</value></data>
+  <data name="Open" xml:space="preserve"><value>打开</value></data>
+  <data name="Open in devices" xml:space="preserve"><value>在设备列表中查看</value></data>
+  <data name="Open JSON" xml:space="preserve"><value>打开 JSON</value></data>
+  <data name="Open Swagger" xml:space="preserve"><value>打开 Swagger</value></data>
+  <data name="Optional JSON template, e.g. {&quot;text&quot;:&quot;{device.name} {temperature}&quot;}" xml:space="preserve"><value>可选 JSON 模板，例如 {"text":"{device.name} {temperature}"}</value></data>
+  <data name="Optional template" xml:space="preserve"><value>可选模板</value></data>
+  <data name="optional, evaluated on event data" xml:space="preserve"><value>可选，按事件数据求值</value></data>
+  <data name="OR" xml:space="preserve"><value>或</value></data>
+  <data name="Organise devices into a hierarchy (site → building → floor). Rules can be scoped to a group and its sub-groups." xml:space="preserve"><value>按层级组织设备（园区 → 楼栋 → 楼层）。规则可作用于某个分组及其子分组。</value></data>
+  <data name="Output" xml:space="preserve"><value>输出</value></data>
+  <data name="Output parameters" xml:space="preserve"><value>输出参数</value></data>
+  <data name="Overview" xml:space="preserve"><value>总览</value></data>
+  <data name="Page not found" xml:space="preserve"><value>页面不存在</value></data>
+  <data name="Page {0} / {1}" xml:space="preserve"><value>第 {0} / {1} 页</value></data>
+  <data name="Parameters" xml:space="preserve"><value>参数</value></data>
+  <data name="Parent" xml:space="preserve"><value>上级分组</value></data>
+  <data name="Parent group" xml:space="preserve"><value>上级分组</value></data>
+  <data name="Parent group not found" xml:space="preserve"><value>上级分组不存在</value></data>
+  <data name="Password" xml:space="preserve"><value>密码</value></data>
+  <data name="Paste a ThingSpec JSON document…" xml:space="preserve"><value>粘贴 ThingSpec JSON 文档…</value></data>
+  <data name="Payload" xml:space="preserve"><value>消息内容</value></data>
+  <data name="Payload (Json codec)" xml:space="preserve"><value>载荷（Json 编解码）</value></data>
+  <data name="Payload codec" xml:space="preserve"><value>载荷编解码</value></data>
+  <data name="Payload codecs" xml:space="preserve"><value>载荷编解码器</value></data>
+  <data name="Peak online" xml:space="preserve"><value>在线峰值</value></data>
+  <data name="peak {0} per day" xml:space="preserve"><value>单日峰值 {0}</value></data>
+  <data name="peak {0} per hour" xml:space="preserve"><value>单小时峰值 {0}</value></data>
+  <data name="Pending" xml:space="preserve"><value>待下发</value></data>
+  <data name="Pick a group to see its devices and move devices into it." xml:space="preserve"><value>选择分组以查看其设备，或把设备移入该分组。</value></data>
+  <data name="Plain JSON: {&quot;temperature&quot;:25.1} / {&quot;ts&quot;:..,&quot;params&quot;:{..}} / NewLife DataModel items" xml:space="preserve"><value>标准 JSON：{"temperature":25.1} / {"ts":..,"params":{..}} / NewLife DataModel 数组</value></data>
+  <data name="platform default" xml:space="preserve"><value>平台默认</value></data>
+  <data name="Point" xml:space="preserve"><value>点位</value></data>
+  <data name="Point address" xml:space="preserve"><value>点位地址</value></data>
+  <data name="Points" xml:space="preserve"><value>点位数</value></data>
+  <data name="Poll interval" xml:space="preserve"><value>采集间隔</value></data>
+  <data name="Poll interval (ms)" xml:space="preserve"><value>采集间隔（毫秒）</value></data>
+  <data name="Polling workers" xml:space="preserve"><value>采集任务</value></data>
+  <data name="POST a JSON payload to an HTTP endpoint. Leave body empty to send the default payload." xml:space="preserve"><value>向 HTTP 地址 POST JSON 数据，请求体留空则发送默认数据。</value></data>
+  <data name="Previous" xml:space="preserve"><value>上一页</value></data>
+  <data name="Product" xml:space="preserve"><value>产品</value></data>
+  <data name="Product *" xml:space="preserve"><value>产品 *</value></data>
+  <data name="Product code '{0}' already exists" xml:space="preserve"><value>产品标识“{0}”已存在</value></data>
+  <data name="Product code cannot be changed while devices exist (it is part of MQTT topics)" xml:space="preserve"><value>产品下存在设备时不能修改产品标识（它是 MQTT 主题的一部分）</value></data>
+  <data name="Product created" xml:space="preserve"><value>产品已创建</value></data>
+  <data name="Product deleted" xml:space="preserve"><value>产品已删除</value></data>
+  <data name="Product is required" xml:space="preserve"><value>请选择产品</value></data>
+  <data name="Product key" xml:space="preserve"><value>产品标识（ProductKey）</value></data>
+  <data name="Product not found" xml:space="preserve"><value>产品不存在</value></data>
+  <data name="Product scope" xml:space="preserve"><value>产品范围</value></data>
+  <data name="Product still has {0} device(s); delete or move them first" xml:space="preserve"><value>该产品下仍有 {0} 台设备，请先删除或迁移</value></data>
+  <data name="Product updated" xml:space="preserve"><value>产品已更新</value></data>
+  <data name="product {0}" xml:space="preserve"><value>产品 {0}</value></data>
+  <data name="Products" xml:space="preserve"><value>产品</value></data>
+  <data name="Products · NewLife IoT" xml:space="preserve"><value>产品 · NewLife 物联网</value></data>
+  <data name="Properties" xml:space="preserve"><value>属性</value></data>
+  <data name="Properties, events and services with matching identifiers are overwritten." xml:space="preserve"><value>标识符相同的属性、事件和服务将被覆盖。</value></data>
+  <data name="Property" xml:space="preserve"><value>属性</value></data>
+  <data name="Property '{0}' already exists" xml:space="preserve"><value>属性“{0}”已存在</value></data>
+  <data name="Property '{0}' is not defined in the product thing model" xml:space="preserve"><value>产品物模型中未定义属性“{0}”</value></data>
+  <data name="Property '{0}' is read-only" xml:space="preserve"><value>属性“{0}”为只读</value></data>
+  <data name="Property deleted" xml:space="preserve"><value>属性已删除</value></data>
+  <data name="Property not found" xml:space="preserve"><value>属性不存在</value></data>
+  <data name="Property report" xml:space="preserve"><value>属性上报</value></data>
+  <data name="Property report — evaluate on each data upload" xml:space="preserve"><value>属性上报——每次数据上报时求值</value></data>
+  <data name="Property rules need at least one condition" xml:space="preserve"><value>属性触发的规则至少需要一个条件</value></data>
+  <data name="Property saved" xml:space="preserve"><value>属性已保存</value></data>
+  <data name="Protocol" xml:space="preserve"><value>协议</value></data>
+  <data name="Protocols &amp; MQTT" xml:space="preserve"><value>协议与 MQTT</value></data>
+  <data name="Publish a message to an MQTT topic on the built-in broker. Empty payload sends the trigger data as JSON." xml:space="preserve"><value>向内置 MQTT 服务端的主题发布消息，内容留空则以 JSON 发送触发数据。</value></data>
+  <data name="Publish MQTT message" xml:space="preserve"><value>发布 MQTT 消息</value></data>
+  <data name="QoS" xml:space="preserve"><value>QoS</value></data>
+  <data name="Queued for device polling" xml:space="preserve"><value>已排队，等待设备拉取</value></data>
+  <data name="Quick start" xml:space="preserve"><value>快速接入</value></data>
+  <data name="r" xml:space="preserve"><value>只读</value></data>
+  <data name="r — read only" xml:space="preserve"><value>r — 只读</value></data>
+  <data name="Raise alarm" xml:space="preserve"><value>产生告警</value></data>
+  <data name="Raised by rule actions. Repeated triggers for the same rule and device update the open alarm instead of creating duplicates." xml:space="preserve"><value>由规则动作产生。同一规则、同一设备重复触发时会更新未处理的告警，而不是重复创建。</value></data>
+  <data name="Raised {0}" xml:space="preserve"><value>产生于 {0}</value></data>
+  <data name="random if empty" xml:space="preserve"><value>留空随机生成</value></data>
+  <data name="Range / unit" xml:space="preserve"><value>范围 / 单位</value></data>
+  <data name="raw aggregation rows" xml:space="preserve"><value>原始汇总行</value></data>
+  <data name="Raw point type" xml:space="preserve"><value>原始点位类型</value></data>
+  <data name="Recent alarms" xml:space="preserve"><value>最新告警</value></data>
+  <data name="Recent executions" xml:space="preserve"><value>最近执行</value></data>
+  <data name="Recent rule executions" xml:space="preserve"><value>最近规则执行</value></data>
+  <data name="refreshes every 5s" xml:space="preserve"><value>每 5 秒刷新</value></data>
+  <data name="Register" xml:space="preserve"><value>注册</value></data>
+  <data name="Register device" xml:space="preserve"><value>注册设备</value></data>
+  <data name="Register devices, bind them to products and groups, and monitor their connection state." xml:space="preserve"><value>注册设备，绑定产品与分组，并监控连接状态。</value></data>
+  <data name="Register {0} devices" xml:space="preserve"><value>注册 {0} 台设备</value></data>
+  <data name="Registered" xml:space="preserve"><value>注册</value></data>
+  <data name="Registered NewLife.IoT drivers" xml:space="preserve"><value>已注册的 NewLife.IoT 驱动</value></data>
+  <data name="Registered {0} devices" xml:space="preserve"><value>已注册 {0} 台设备</value></data>
+  <data name="Reload" xml:space="preserve"><value>重新加载</value></data>
+  <data name="Remark" xml:space="preserve"><value>备注</value></data>
+  <data name="Remove" xml:space="preserve"><value>移除</value></data>
+  <data name="Remove from group" xml:space="preserve"><value>移出分组</value></data>
+  <data name="Reported but not in thing model" xml:space="preserve"><value>已上报但不在物模型中</value></data>
+  <data name="Request ID:" xml:space="preserve"><value>请求 ID：</value></data>
+  <data name="required" xml:space="preserve"><value>必填</value></data>
+  <data name="Reset secret" xml:space="preserve"><value>重置密钥</value></data>
+  <data name="REST API" xml:space="preserve"><value>REST 接口</value></data>
+  <data name="Result" xml:space="preserve"><value>结果</value></data>
+  <data name="Reveal" xml:space="preserve"><value>显示</value></data>
+  <data name="Rule" xml:space="preserve"><value>规则</value></data>
+  <data name="Rule created" xml:space="preserve"><value>规则已创建</value></data>
+  <data name="Rule deleted" xml:space="preserve"><value>规则已删除</value></data>
+  <data name="Rule disabled" xml:space="preserve"><value>规则已禁用</value></data>
+  <data name="Rule enabled" xml:space="preserve"><value>规则已启用</value></data>
+  <data name="Rule not found" xml:space="preserve"><value>规则不存在</value></data>
+  <data name="Rule saved" xml:space="preserve"><value>规则已保存</value></data>
+  <data name="Rules" xml:space="preserve"><value>规则</value></data>
+  <data name="Rules · NewLife IoT" xml:space="preserve"><value>规则 · NewLife 物联网</value></data>
+  <data name="Run actions" xml:space="preserve"><value>执行动作</value></data>
+  <data name="rw" xml:space="preserve"><value>读写</value></data>
+  <data name="rw — read / write" xml:space="preserve"><value>rw — 读写</value></data>
+  <data name="same as data type" xml:space="preserve"><value>与数据类型一致</value></data>
+  <data name="Save" xml:space="preserve"><value>保存</value></data>
+  <data name="Save changes" xml:space="preserve"><value>保存修改</value></data>
+  <data name="Save event" xml:space="preserve"><value>保存事件</value></data>
+  <data name="Save property" xml:space="preserve"><value>保存属性</value></data>
+  <data name="Save rule" xml:space="preserve"><value>保存规则</value></data>
+  <data name="Save service" xml:space="preserve"><value>保存服务</value></data>
+  <data name="Scaling" xml:space="preserve"><value>缩放因子</value></data>
+  <data name="Search name, key or category" xml:space="preserve"><value>搜索名称、标识或类别</value></data>
+  <data name="Secret" xml:space="preserve"><value>密钥</value></data>
+  <data name="Secret reset" xml:space="preserve"><value>密钥已重置</value></data>
+  <data name="Select a driver…" xml:space="preserve"><value>选择驱动…</value></data>
+  <data name="Select a group" xml:space="preserve"><value>请选择分组</value></data>
+  <data name="Select a numeric property that has reported at least twice." xml:space="preserve"><value>请选择至少上报过两次的数值属性。</value></data>
+  <data name="Select a product…" xml:space="preserve"><value>选择产品…</value></data>
+  <data name="Select all" xml:space="preserve"><value>全选</value></data>
+  <data name="Select {0}" xml:space="preserve"><value>选择 {0}</value></data>
+  <data name="Send" xml:space="preserve"><value>发送</value></data>
+  <data name="Sending…" xml:space="preserve"><value>发送中…</value></data>
+  <data name="Sensor, Meter, Gateway…" xml:space="preserve"><value>传感器、仪表、网关…</value></data>
+  <data name="Sent" xml:space="preserve"><value>已下发</value></data>
+  <data name="Service" xml:space="preserve"><value>服务</value></data>
+  <data name="Service '{0}' already exists" xml:space="preserve"><value>服务“{0}”已存在</value></data>
+  <data name="Service '{0}' is not defined in the product thing model" xml:space="preserve"><value>产品物模型中未定义服务“{0}”</value></data>
+  <data name="service calls and property writes" xml:space="preserve"><value>服务调用与属性写入</value></data>
+  <data name="Service deleted" xml:space="preserve"><value>服务已删除</value></data>
+  <data name="Service identifier" xml:space="preserve"><value>服务标识符</value></data>
+  <data name="Service not found" xml:space="preserve"><value>服务不存在</value></data>
+  <data name="Service saved" xml:space="preserve"><value>服务已保存</value></data>
+  <data name="Services" xml:space="preserve"><value>服务</value></data>
+  <data name="Services &amp; commands" xml:space="preserve"><value>服务与指令</value></data>
+  <data name="Services such as reboot or calibrate can be invoked from device pages and rules." xml:space="preserve"><value>重启、校准等服务可在设备页面和规则中调用。</value></data>
+  <data name="Session" xml:space="preserve"><value>会话</value></data>
+  <data name="Set" xml:space="preserve"><value>设置</value></data>
+  <data name="Set device property" xml:space="preserve"><value>设置设备属性</value></data>
+  <data name="Set property" xml:space="preserve"><value>属性设置</value></data>
+  <data name="Set {0}" xml:space="preserve"><value>设置 {0}</value></data>
+  <data name="Silence period (s)" xml:space="preserve"><value>静默期（秒）</value></data>
+  <data name="silence {0}s" xml:space="preserve"><value>静默 {0} 秒</value></data>
+  <data name="since {0}" xml:space="preserve"><value>自 {0} 起</value></data>
+  <data name="Snapshot" xml:space="preserve"><value>快照</value></data>
+  <data name="Something went wrong" xml:space="preserve"><value>出错了</value></data>
+  <data name="Sort order" xml:space="preserve"><value>排序</value></data>
+  <data name="Source" xml:space="preserve"><value>来源</value></data>
+  <data name="Statistics" xml:space="preserve"><value>统计</value></data>
+  <data name="Statistics are aggregated every minute." xml:space="preserve"><value>统计数据每分钟汇总一次。</value></data>
+  <data name="Statistics · NewLife IoT" xml:space="preserve"><value>统计 · NewLife 物联网</value></data>
+  <data name="Status" xml:space="preserve"><value>状态</value></data>
+  <data name="Step" xml:space="preserve"><value>步长</value></data>
+  <data name="stopped" xml:space="preserve"><value>已停止</value></data>
+  <data name="Subscriptions" xml:space="preserve"><value>订阅</value></data>
+  <data name="Success" xml:space="preserve"><value>成功</value></data>
+  <data name="Summary" xml:space="preserve"><value>摘要</value></data>
+  <data name="Supports templates" xml:space="preserve"><value>支持模板</value></data>
+  <data name="Supports templates such as {device.name} {temperature}" xml:space="preserve"><value>支持 {device.name} {temperature} 等模板</value></data>
+  <data name="Supports templates such as {rule.name}" xml:space="preserve"><value>支持 {rule.name} 等模板</value></data>
+  <data name="sync" xml:space="preserve"><value>同步</value></data>
+  <data name="Target device code" xml:space="preserve"><value>目标设备编码</value></data>
+  <data name="Target group" xml:space="preserve"><value>目标分组</value></data>
+  <data name="Target status must be Acknowledged or Closed" xml:space="preserve"><value>目标状态必须是已确认或已关闭</value></data>
+  <data name="TCP网络版Modbus" xml:space="preserve"><value>TCP网络版Modbus</value></data>
+  <data name="TCP网络版ModbusRTU" xml:space="preserve"><value>TCP网络版ModbusRTU</value></data>
+  <data name="Temperature" xml:space="preserve"><value>温度</value></data>
+  <data name="Test rule" xml:space="preserve"><value>测试规则</value></data>
+  <data name="The page you requested does not exist." xml:space="preserve"><value>您访问的页面不存在。</value></data>
+  <data name="The platform polls this device through the {0} driver (NewLife.IoT). No device-side configuration is required; edit the product or device driver parameters to change the endpoint." xml:space="preserve"><value>平台通过 {0} 驱动（NewLife.IoT）轮询该设备，设备端无需任何配置；如需更改采集地址，请编辑产品或设备的驱动参数。</value></data>
+  <data name="Then" xml:space="preserve"><value>则</value></data>
+  <data name="Thing model" xml:space="preserve"><value>物模型</value></data>
+  <data name="ThingSpec JSON" xml:space="preserve"><value>ThingSpec JSON</value></data>
+  <data name="Time" xml:space="preserve"><value>时间</value></data>
+  <data name="Timeline" xml:space="preserve"><value>时间线</value></data>
+  <data name="Timeout" xml:space="preserve"><value>超时</value></data>
+  <data name="Title" xml:space="preserve"><value>标题</value></data>
+  <data name="today" xml:space="preserve"><value>今日</value></data>
+  <data name="Toggle navigation" xml:space="preserve"><value>切换导航</value></data>
+  <data name="Topic" xml:space="preserve"><value>主题</value></data>
+  <data name="Topic conventions" xml:space="preserve"><value>主题规范</value></data>
+  <data name="Trend" xml:space="preserve"><value>趋势</value></data>
+  <data name="Trigger" xml:space="preserve"><value>触发</value></data>
+  <data name="Trigger *" xml:space="preserve"><value>触发方式 *</value></data>
+  <data name="Trigger → scope → conditions → actions. Action parameters accept templates like" xml:space="preserve"><value>触发 → 范围 → 条件 → 动作。动作参数支持模板，例如</value></data>
+  <data name="Triggered" xml:space="preserve"><value>触发次数</value></data>
+  <data name="Type" xml:space="preserve"><value>类型</value></data>
+  <data name="UDP网络版Modbus" xml:space="preserve"><value>UDP网络版Modbus</value></data>
+  <data name="UDP网络版ModbusRTU" xml:space="preserve"><value>UDP网络版ModbusRTU</value></data>
+  <data name="unchanged if empty" xml:space="preserve"><value>留空保持不变</value></data>
+  <data name="Unexpected error: {0}" xml:space="preserve"><value>意外错误：{0}</value></data>
+  <data name="ungrouped" xml:space="preserve"><value>未分组</value></data>
+  <data name="Unique DeviceName; MQTT username and topic segment" xml:space="preserve"><value>唯一的 DeviceName，用作 MQTT 用户名与主题段</value></data>
+  <data name="Unit" xml:space="preserve"><value>单位</value></data>
+  <data name="Unknown action type '{0}'" xml:space="preserve"><value>未知的动作类型“{0}”</value></data>
+  <data name="Unsupported operator '{0}'" xml:space="preserve"><value>不支持的运算符“{0}”</value></data>
+  <data name="Unsupported protocol '{0}', expected one of {1}" xml:space="preserve"><value>不支持的协议“{0}”，可选值：{1}</value></data>
+  <data name="Unsupported trigger type '{0}'" xml:space="preserve"><value>不支持的触发类型“{0}”</value></data>
+  <data name="up" xml:space="preserve"><value>上行</value></data>
+  <data name="Updated" xml:space="preserve"><value>更新时间</value></data>
+  <data name="Uplink messages" xml:space="preserve"><value>上行消息</value></data>
+  <data name="Uplink topics" xml:space="preserve"><value>上行主题</value></data>
+  <data name="URL" xml:space="preserve"><value>URL</value></data>
+  <data name="Use driver template" xml:space="preserve"><value>使用驱动模板</value></data>
+  <data name="Use “Add devices” to move devices here." xml:space="preserve"><value>使用“添加设备”把设备移到这里。</value></data>
+  <data name="Used in MQTT topics: iot/&lt;key&gt;/&lt;device&gt;/…" xml:space="preserve"><value>用于 MQTT 主题：iot/&lt;key&gt;/&lt;device&gt;/…</value></data>
+  <data name="Username" xml:space="preserve"><value>用户名</value></data>
+  <data name="username = device code, password = device secret" xml:space="preserve"><value>用户名 = 设备编码，密码 = 设备密钥</value></data>
+  <data name="uses the saved version" xml:space="preserve"><value>使用已保存的版本</value></data>
+  <data name="Value" xml:space="preserve"><value>值</value></data>
+  <data name="Values (JSON)" xml:space="preserve"><value>数据（JSON）</value></data>
+  <data name="Values are rounded to the step's precision" xml:space="preserve"><value>数值按步长精度取整</value></data>
+  <data name="Values must be a JSON object" xml:space="preserve"><value>数据必须是 JSON 对象</value></data>
+  <data name="Virtual simulator" xml:space="preserve"><value>虚拟模拟器</value></data>
+  <data name="Wait up to 5s for the device reply" xml:space="preserve"><value>等待设备回复（最多 5 秒）</value></data>
+  <data name="Warning" xml:space="preserve"><value>警告</value></data>
+  <data name="Webhook" xml:space="preserve"><value>Webhook</value></data>
+  <data name="WebSocket" xml:space="preserve"><value>WebSocket</value></data>
+  <data name="When" xml:space="preserve"><value>当</value></data>
+  <data name="When a property crosses a threshold, an event arrives or a device goes online/offline, run actions: alarms, device linkage, webhooks, MQTT messages." xml:space="preserve"><value>当属性越过阈值、收到事件或设备上下线时执行动作：告警、设备联动、Webhook、MQTT 消息。</value></data>
+  <data name="Whole platform" xml:space="preserve"><value>全平台</value></data>
+  <data name="Write a read-write property on the triggering device or another device (device linkage)." xml:space="preserve"><value>写入触发设备或其它设备的读写属性（设备联动）。</value></data>
+  <data name="Write device log" xml:space="preserve"><value>写设备日志</value></data>
+  <data name="{0} / {1} online" xml:space="preserve"><value>{0} / {1} 在线</value></data>
+  <data name="{0} B in · {1} B out" xml:space="preserve"><value>收 {0} B · 发 {1} B</value></data>
+  <data name="{0} codec" xml:space="preserve"><value>{0} 编解码</value></data>
+  <data name="{0} comes online" xml:space="preserve"><value>{0}上线</value></data>
+  <data name="{0} connections" xml:space="preserve"><value>{0} 次连接</value></data>
+  <data name="{0} downlink commands" xml:space="preserve"><value>{0} 条下行指令</value></data>
+  <data name="{0} enabled · {1} products" xml:space="preserve"><value>{0} 台启用 · {1} 个产品</value></data>
+  <data name="{0} failure(s)" xml:space="preserve"><value>失败 {0} 次</value></data>
+  <data name="{0} goes offline" xml:space="preserve"><value>{0}下线</value></data>
+  <data name="{0} groups · {1} ungrouped device(s)" xml:space="preserve"><value>{0} 个分组 · {1} 台未分组设备</value></data>
+  <data name="{0} has an invalid format" xml:space="preserve"><value>{0}格式不正确</value></data>
+  <data name="{0} healthy" xml:space="preserve"><value>{0} 个正常</value></data>
+  <data name="{0} in the last minute · {1} downlinks" xml:space="preserve"><value>最近 1 分钟 {0} 条 · 下行 {1} 条</value></data>
+  <data name="{0} is invalid" xml:space="preserve"><value>{0}无效</value></data>
+  <data name="{0} is required" xml:space="preserve"><value>{0}不能为空</value></data>
+  <data name="{0} msgs today" xml:space="preserve"><value>今日 {0} 条消息</value></data>
+  <data name="{0} must be at most {1} characters" xml:space="preserve"><value>{0}最多 {1} 个字符</value></data>
+  <data name="{0} must be between {1} and {2}" xml:space="preserve"><value>{0}必须在 {1} 到 {2} 之间</value></data>
+  <data name="{0} needs at least {1} item(s)" xml:space="preserve"><value>{0}至少需要 {1} 项</value></data>
+  <data name="{0} of {1} devices" xml:space="preserve"><value>{0} / {1} 台设备</value></data>
+  <data name="{0} online" xml:space="preserve"><value>{0} 在线</value></data>
+  <data name="{0} properties · {1} events · {2} services" xml:space="preserve"><value>{0} 个属性 · {1} 个事件 · {2} 个服务</value></data>
+  <data name="{0} raised today · {1} rules enabled" xml:space="preserve"><value>今日 {0} 条 · {1} 条规则启用</value></data>
+  <data name="{0} registered today" xml:space="preserve"><value>今日新增 {0} 台</value></data>
+  <data name="{0} removed from group" xml:space="preserve"><value>{0} 已移出分组</value></data>
+  <data name="{0} reports data" xml:space="preserve"><value>{0}上报数据</value></data>
+  <data name="{0} reports event {1}" xml:space="preserve"><value>{0}上报事件 {1}</value></data>
+  <data name="{0} selected" xml:space="preserve"><value>已选 {0} 项</value></data>
+  <data name="{0} topic filters" xml:space="preserve"><value>{0} 个主题过滤器</value></data>
+  <data name="{0} total" xml:space="preserve"><value>共 {0} 条</value></data>
+  <data name="{0} total connections" xml:space="preserve"><value>累计 {0} 次连接</value></data>
+  <data name="{0} via {1}" xml:space="preserve"><value>{0}（通过 {1}）</value></data>
+  <data name="{0} — may subscribe to iot/# and alerts/#" xml:space="preserve"><value>{0}——可订阅 iot/# 与 alerts/#</value></data>
+  <data name="{0}% online rate" xml:space="preserve"><value>在线率 {0}%</value></data>
+  <data name="{0}: {1} messages, {2} online, {3} alarms" xml:space="preserve"><value>{0}：{1} 条消息，{2} 台在线，{3} 条告警</value></data>
+  <data name="{0}d ago" xml:space="preserve"><value>{0} 天前</value></data>
+  <data name="{0}d {1}h" xml:space="preserve"><value>{0} 天 {1} 小时</value></data>
+  <data name="{0}h ago" xml:space="preserve"><value>{0} 小时前</value></data>
+  <data name="{0}h {1}m" xml:space="preserve"><value>{0} 小时 {1} 分</value></data>
+  <data name="{0}m ago" xml:space="preserve"><value>{0} 分钟前</value></data>
+  <data name="{0}m {1}s" xml:space="preserve"><value>{0} 分 {1} 秒</value></data>
+  <data name="{0}s" xml:space="preserve"><value>{0} 秒</value></data>
+  <data name="{0}s ago" xml:space="preserve"><value>{0} 秒前</value></data>
+  <data name="{0}–{1} of {2}" xml:space="preserve"><value>第 {0}–{1} 条，共 {2} 条</value></data>
+  <data name="{device.name} triggered {rule.name}" xml:space="preserve"><value>{device.name} 触发了 {rule.name}</value></data>
+  <data name="{rule.name}: {device.name}" xml:space="preserve"><value>{rule.name}：{device.name}</value></data>
+  <data name="°C" xml:space="preserve"><value>°C</value></data>
+  <data name="— Remove from group —" xml:space="preserve"><value>— 移出分组 —</value></data>
+  <data name="— Top level —" xml:space="preserve"><value>— 顶级 —</value></data>
+  <data name="— Ungrouped —" xml:space="preserve"><value>— 未分组 —</value></data>
+  <data name="runtime state reported by devices; rw properties can be written from the platform" xml:space="preserve"><value>设备运行时上报的状态；读写属性可由平台写入</value></data>
+  <data name="Devices may only publish their own uplink topics and subscribe under {0}" xml:space="preserve"><value>设备只能发布自己的上行主题，并只能订阅 {0} 下的主题</value></data>
+  <data name="{0} device(s)" xml:space="preserve"><value>{0} 台设备</value></data>
+  <data name="{0} selected device(s)" xml:space="preserve"><value>已选 {0} 台设备</value></data>
+  <data name="{0} succeeded, {1} awaiting reply, {2} failed, {3} skipped" xml:space="preserve"><value>成功 {0}，待回复 {1}，失败 {2}，跳过 {3}</value></data>
+  <data name="{0} will run · {1} skipped" xml:space="preserve"><value>{0} 台将执行 · {1} 台跳过</value></data>
+  <data name="Action" xml:space="preserve"><value>动作</value></data>
+  <data name="Auto — skip offline MQTT/Driver devices, queue for HTTP devices" xml:space="preserve"><value>自动——跳过离线的 MQTT/驱动设备，HTTP 设备排队等待拉取</value></data>
+  <data name="awaiting device reply" xml:space="preserve"><value>已下发，等待回复</value></data>
+  <data name="Awaiting reply" xml:space="preserve"><value>待回复</value></data>
+  <data name="Batch control" xml:space="preserve"><value>批量控制</value></data>
+  <data name="Batch finished: {0} succeeded, {1} awaiting reply, {2} failed, {3} skipped" xml:space="preserve"><value>批量控制完成：成功 {0}，待回复 {1}，失败 {2}，跳过 {3}</value></data>
+  <data name="Batch job #{0}" xml:space="preserve"><value>批量任务 #{0}</value></data>
+  <data name="Clear selection" xml:space="preserve"><value>清除选择</value></data>
+  <data name="Control" xml:space="preserve"><value>设备控制</value></data>
+  <data name="Current" xml:space="preserve"><value>当前值</value></data>
+  <data name="Device is disabled — enable it before sending commands." xml:space="preserve"><value>设备已禁用——请先启用再下发指令。</value></data>
+  <data name="Done" xml:space="preserve"><value>完成</value></data>
+  <data name="HTTP device: commands are queued and delivered when the device polls GET /commands." xml:space="preserve"><value>HTTP 设备：指令先排队，设备调用 GET /commands 拉取时下发。</value></data>
+  <data name="Include sub-groups" xml:space="preserve"><value>包含子分组</value></data>
+  <data name="Last command" xml:space="preserve"><value>最近指令</value></data>
+  <data name="live · refreshes every 2s" xml:space="preserve"><value>实时 · 每 2 秒刷新</value></data>
+  <data name="Mark a property as rw in the product thing model to control it here." xml:space="preserve"><value>在产品物模型中将属性设为读写（rw）后即可在此控制。</value></data>
+  <data name="New batch" xml:space="preserve"><value>新建批量任务</value></data>
+  <data name="No services in this scope." xml:space="preserve"><value>该范围内没有可调用的服务。</value></data>
+  <data name="No writable properties" xml:space="preserve"><value>暂无可写属性</value></data>
+  <data name="No writable properties in this scope." xml:space="preserve"><value>该范围内没有可写属性。</value></data>
+  <data name="Offline devices" xml:space="preserve"><value>离线设备</value></data>
+  <data name="Online devices only" xml:space="preserve"><value>仅在线设备</value></data>
+  <data name="Per device; 0 = send without waiting. Replies arriving later still update each command." xml:space="preserve"><value>按每台设备计算；0 表示下发后不等待。稍后到达的回复仍会更新各条指令。</value></data>
+  <data name="Preview" xml:space="preserve"><value>预览</value></data>
+  <data name="property writes and service calls sent to many devices" xml:space="preserve"><value>批量下发的属性设置与服务调用</value></data>
+  <data name="queued" xml:space="preserve"><value>排队中</value></data>
+  <data name="queued until the device polls" xml:space="preserve"><value>排队中，等待设备拉取</value></data>
+  <data name="range {0} – {1}" xml:space="preserve"><value>范围 {0} – {1}</value></data>
+  <data name="read-write properties from the thing model" xml:space="preserve"><value>物模型中的读写属性</value></data>
+  <data name="Recent batch jobs" xml:space="preserve"><value>最近批量任务</value></data>
+  <data name="Refresh status" xml:space="preserve"><value>刷新状态</value></data>
+  <data name="Scope" xml:space="preserve"><value>范围</value></data>
+  <data name="Select a property…" xml:space="preserve"><value>选择属性…</value></data>
+  <data name="Select a service…" xml:space="preserve"><value>选择服务…</value></data>
+  <data name="Send to {0} device(s)" xml:space="preserve"><value>下发到 {0} 台设备</value></data>
+  <data name="skip" xml:space="preserve"><value>跳过</value></data>
+  <data name="Skipped" xml:space="preserve"><value>跳过</value></data>
+  <data name="Succeeded" xml:space="preserve"><value>成功</value></data>
+  <data name="Try all devices (offline ones will fail)" xml:space="preserve"><value>全部尝试（离线设备将失败）</value></data>
+  <data name="Wait for replies (s)" xml:space="preserve"><value>等待回复（秒）</value></data>
+  <data name="waiting for device reply…" xml:space="preserve"><value>等待设备回复…</value></data>
+  <data name="will run" xml:space="preserve"><value>将执行</value></data>
+  <data name="Writable properties" xml:space="preserve"><value>可写属性</value></data>
+  <data name="Select at least one device" xml:space="preserve"><value>请至少选择一台设备</value></data>
+  <data name="No devices matched the scope" xml:space="preserve"><value>范围内没有匹配的设备</value></data>
+  <data name="Property is required" xml:space="preserve"><value>请选择属性</value></data>
+  <data name="Service is required" xml:space="preserve"><value>请选择服务</value></data>
+  <data name="Kind must be 'property' or 'service'" xml:space="preserve"><value>动作类型必须是 property 或 service</value></data>
+  <data name="Batch job not found" xml:space="preserve"><value>批量任务不存在</value></data>
+  <data name="Batch job" xml:space="preserve"><value>批量任务</value></data>
+  <data name="Product is disabled" xml:space="preserve"><value>产品已禁用</value></data>
+  <data name="Property is not defined for this product" xml:space="preserve"><value>该产品未定义此属性</value></data>
+  <data name="Property is read-only" xml:space="preserve"><value>属性为只读</value></data>
+  <data name="Service is not defined for this product" xml:space="preserve"><value>该产品未定义此服务</value></data>
+  <data name="Batch" xml:space="preserve"><value>批量</value></data>
+  <data name="Drag and release to send" xml:space="preserve"><value>拖动滑块，松开即下发</value></data>
+  <data name="Preview value" xml:space="preserve"><value>预计</value></data>
+  <data name="Now" xml:space="preserve"><value>当前</value></data>
+  <data name="(retained, use as last will)" xml:space="preserve"><value>（保留消息，建议作为遗嘱）</value></data>
+  <data name="{0} connection(s) since start" xml:space="preserve"><value>启动以来连接 {0} 次</value></data>
+  <data name="Built-in broker" xml:space="preserve"><value>内置服务端</value></data>
+  <data name="Built-in mode: the platform hosts NewLife.MQTT, authenticates devices with their code and secret, enforces topic ACLs and tracks online state from connections." xml:space="preserve"><value>内置模式：平台在进程内运行 NewLife.MQTT，按设备编码与密钥认证设备，执行主题访问控制，并根据连接判定上下线。</value></data>
+  <data name="connected" xml:space="preserve"><value>已连接</value></data>
+  <data name="disconnected" xml:space="preserve"><value>未连接</value></data>
+  <data name="External broker" xml:space="preserve"><value>外部服务器</value></data>
+  <data name="External mode: device authentication and publish ACLs are enforced by the external broker. The platform subscribes to device uplink topics, publishes downlink commands, and tracks online state from the status topic (retained online + offline will) and heartbeat timeout. Kicking devices off the broker is not possible." xml:space="preserve"><value>外部模式：设备认证与发布权限由外部 MQTT 服务器负责。平台订阅设备上行主题、发布下行指令，并根据 status 主题（保留的 online + 遗嘱 offline）及心跳超时判定上下线；无法将设备踢下线。</value></data>
+  <data name="External MQTT · {0}" xml:space="preserve"><value>外部 MQTT · {0}</value></data>
+  <data name="External MQTT broker" xml:space="preserve"><value>外部 MQTT 服务器</value></data>
+  <data name="Mode" xml:space="preserve"><value>模式</value></data>
+  <data name="one active broker for the whole platform; switch with IoT:Mqtt:Mode (restart required)" xml:space="preserve"><value>全平台使用一个 MQTT 服务器，通过 IoT:Mqtt:Mode 切换（需重启）</value></data>
+  <data name="Platform client" xml:space="preserve"><value>平台客户端</value></data>
+  <data name="Server" xml:space="preserve"><value>服务器</value></data>
+  <data name="Topic root" xml:space="preserve"><value>主题根</value></data>
+  <data name="External MQTT broker is not connected" xml:space="preserve"><value>外部 MQTT 服务器未连接</value></data>
+  <data name="MQTT publish failed" xml:space="preserve"><value>MQTT 发布失败</value></data>
+  <data name="Publish a message to an MQTT topic on the active broker (built-in or external). Empty payload sends the trigger data as JSON." xml:space="preserve"><value>向当前 MQTT 服务器（内置或外部）的主题发布消息，内容留空则以 JSON 发送触发数据。</value></data>
+  <data name="Active broker" xml:space="preserve"><value>选用的服务器</value></data>
+  <data name="External broker profiles" xml:space="preserve"><value>外部服务器配置</value></data>
+  <data name="Id" xml:space="preserve"><value>标识</value></data>
+  <data name="In use" xml:space="preserve"><value>使用中</value></data>
+  <data name="IoT:Mqtt:Brokers — select one with IoT:Mqtt:ActiveBroker" xml:space="preserve"><value>IoT:Mqtt:Brokers —— 通过 IoT:Mqtt:ActiveBroker 选用其一</value></data>
+  <data name="Switching the broker or mode is done in configuration or environment variables and takes effect after a restart; passwords are never shown here." xml:space="preserve"><value>切换服务器或模式请修改配置文件或环境变量，重启后生效；此处不会显示密码。</value></data>
+  <data name="Embedded (built-in)" xml:space="preserve"><value>内置（本机）</value></data>
+  <data name="Inherit product / platform default" xml:space="preserve"><value>继承产品 / 平台默认</value></data>
+  <data name="Override the product default. Unset devices use the product setting, then the platform default (Embedded, or ActiveBroker when Mode=External)." xml:space="preserve"><value>覆盖产品默认。未指定的设备先用产品设置，再回退平台默认（内置；Mode=External 时为 ActiveBroker）。</value></data>
+  <data name="Default MQTT broker" xml:space="preserve"><value>默认 MQTT 服务器</value></data>
+  <data name="New MQTT devices inherit this broker. A device can still pick a different profile." xml:space="preserve"><value>新 MQTT 设备继承此服务器，单台设备仍可改选其它配置。</value></data>
+  <data name="MQTT brokers" xml:space="preserve"><value>MQTT 服务器</value></data>
+  <data name="{0} in use · default {1}" xml:space="preserve"><value>{0} 个使用中 · 默认 {1}</value></data>
+  <data name="embedded broker · {0} total connections" xml:space="preserve"><value>内置服务端 · 累计连接 {0} 次</value></data>
+  <data name="across all connected brokers" xml:space="preserve"><value>全部已连接服务器合计</value></data>
+  <data name="devices pick a broker; the platform may connect to several at once" xml:space="preserve"><value>每台设备可选用不同服务器，平台可同时连接多台</value></data>
+  <data name="Default: external" xml:space="preserve"><value>默认：外部</value></data>
+  <data name="Default: embedded" xml:space="preserve"><value>默认：内置</value></data>
+  <data name="used when a device and its product leave the broker unset" xml:space="preserve"><value>设备与产品均未指定时使用</value></data>
+  <data name="Assign a broker on the product (default for new devices) or on each device. Embedded stays selectable. External profiles in IoT:Mqtt:Brokers are the other options. The platform starts Embedded when any device uses it (or Mode=Embedded), and opens a client to each external profile that has an enabled MQTT device or is the platform default." xml:space="preserve"><value>在产品（新设备默认）或单台设备上指定 MQTT 服务器。内置始终可选，IoT:Mqtt:Brokers 中的外部配置为其它选项。任一设备使用内置（或 Mode=Embedded）时启动内置服务端；每个被启用 MQTT 设备引用（或作为平台默认）的外部配置都会建立客户端连接。</value></data>
+  <data name="Broker profiles" xml:space="preserve"><value>服务器配置</value></data>
+  <data name="connection state and how many enabled MQTT devices resolve here" xml:space="preserve"><value>连接状态及解析到此服务器的已启用 MQTT 设备数</value></data>
+  <data name="default" xml:space="preserve"><value>默认</value></data>
+  <data name="idle" xml:space="preserve"><value>空闲</value></data>
+  <data name="Broker profiles are configured in IoT:Mqtt:Brokers. Passwords are never shown. Device assignment is edited on the product or device page." xml:space="preserve"><value>服务器目录在 IoT:Mqtt:Brokers 中配置，此处不显示密码。设备选用在产品或设备编辑页修改。</value></data>
+  <data name="(embedded broker)" xml:space="preserve"><value>（内置服务端）</value></data>
+  <data name="On the embedded broker, devices may only publish their own uplink topics and subscribe under {0}. External brokers enforce their own ACLs." xml:space="preserve"><value>内置服务端上，设备只能发布自己的上行主题并订阅 {0} 之下的主题。外部服务器使用各自的访问控制。</value></data>
+  <data name="embedded" xml:space="preserve"><value>内置</value></data>
+  <data name="MQTT · {0} broker(s)" xml:space="preserve"><value>MQTT · {0} 台服务器</value></data>
+  <data name="Unknown MQTT broker profile '{0}'" xml:space="preserve"><value>未知的 MQTT 服务器配置「{0}」</value></data>
+  <data name="Publish a message to an MQTT topic on the broker assigned to the triggering device. Empty payload sends the trigger data as JSON." xml:space="preserve"><value>向触发设备所在 MQTT 服务器的主题发布消息，内容留空则以 JSON 发送触发数据。</value></data>
+  <data name="TSL JSON" xml:space="preserve"><value>物模型 TSL</value></data>
+  <data name="Aliyun TSL" xml:space="preserve"><value>阿里云 TSL</value></data>
+  <data name="Module" xml:space="preserve"><value>模块</value></data>
+  <data name="Module name" xml:space="preserve"><value>模块名称</value></data>
+  <data name="Default module" xml:space="preserve"><value>默认模块</value></data>
+  <data name="All modules (platform extension)" xml:space="preserve"><value>全部模块（平台扩展）</value></data>
+  <data name="empty = default module" xml:space="preserve"><value>留空表示默认模块</value></data>
+  <data name="Unit name" xml:space="preserve"><value>单位名称</value></data>
+  <data name="Celsius" xml:space="preserve"><value>摄氏度</value></data>
+  <data name="Length" xml:space="preserve"><value>长度</value></data>
+  <data name="Array size" xml:space="preserve"><value>数组长度</value></data>
+  <data name="Item type" xml:space="preserve"><value>元素类型</value></data>
+  <data name="Struct specs" xml:space="preserve"><value>结构体规格</value></data>
+  <data name="Mandatory" xml:space="preserve"><value>必选</value></data>
+  <data name="w — write only" xml:space="preserve"><value>w — 只写</value></data>
+  <data name="Alink uplink" xml:space="preserve"><value>Alink 上行</value></data>
+  <data name="Alink downlink" xml:space="preserve"><value>Alink 下行</value></data>
+  <data name="Paste an Aliyun TSL JSON document…" xml:space="preserve"><value>粘贴阿里云导出的 TSL JSON…</value></data>
+  <data name="Invalid TSL JSON: {0}" xml:space="preserve"><value>TSL JSON 无效：{0}</value></data>
+  <data name="Access mode must be r, w or rw" xml:space="preserve"><value>读写类型只能是 r、w 或 rw</value></data>
+  <data name="Name must be at most {0} characters" xml:space="preserve"><value>名称最长 {0} 个字符</value></data>
+  <data name="Unsupported data type '{0}'. Expected {1}" xml:space="preserve"><value>不支持的数据类型「{0}」，应为 {1}</value></data>
+  <data name="Array size must be between 1 and 512" xml:space="preserve"><value>数组元素个数必须在 1 到 512 之间</value></data>
+  <data name="Event identifier 'property' is reserved by the Alink property topic" xml:space="preserve"><value>事件标识符 property 已被 Alink 属性上报主题占用</value></data>
+  <data name="{0} must start with a letter or underscore and contain only letters, digits and underscore (max 50)" xml:space="preserve"><value>{0} 必须以字母或下划线开头，只能包含字母、数字和下划线，最长 50 个字符</value></data>
+  <data name="Property '{0}' value is invalid: {1}" xml:space="preserve"><value>属性「{0}」的值不合法：{1}</value></data>
+  <data name="Function block" xml:space="preserve"><value>模块</value></data>
+  <data name="Parameter" xml:space="preserve"><value>参数</value></data>
+  <data name="Access logs" xml:space="preserve"><value>访问记录</value></data>
+  <data name="Access logs · NewLife IoT" xml:space="preserve"><value>访问记录 · NewLife IoT</value></data>
+  <data name="Visits to the admin UI and API. Static files and Blazor heartbeats are omitted. The client IP prefers CF-Connecting-IP when the request comes from a trusted proxy." xml:space="preserve"><value>记录管理端页面和 API 的访问。静态资源和 Blazor 心跳不记入。请求来自受信任代理时，客户端 IP 优先取 CF-Connecting-IP。</value></data>
+  <data name="Page views today" xml:space="preserve"><value>今日 PV</value></data>
+  <data name="Unique IPs" xml:space="preserve"><value>独立 IP</value></data>
+  <data name="Top referrers" xml:space="preserve"><value>来源 Top</value></data>
+  <data name="Top regions" xml:space="preserve"><value>地区 Top</value></data>
+  <data name="Top browsers" xml:space="preserve"><value>浏览器 Top</value></data>
+  <data name="Direct visit" xml:space="preserve"><value>直接访问</value></data>
+  <data name="Referer" xml:space="preserve"><value>来源</value></data>
+  <data name="Browser" xml:space="preserve"><value>浏览器</value></data>
+  <data name="Client IP" xml:space="preserve"><value>客户端 IP</value></data>
+  <data name="Country" xml:space="preserve"><value>国家/地区</value></data>
+  <data name="Request path" xml:space="preserve"><value>路径</value></data>
+  <data name="Apply filters" xml:space="preserve"><value>筛选</value></data>
+  <data name="No access logs" xml:space="preserve"><value>没有访问记录</value></data>
+  <data name="Duration" xml:space="preserve"><value>耗时</value></data>
+  <data name="Bot" xml:space="preserve"><value>爬虫</value></data>
+</root>

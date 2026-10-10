@@ -1,0 +1,34 @@
+@* 指令状态：状态徽标在上，时间与提示/输出在下（与“属性名在上、标识在下”的排版一致） *@
+@if (Record != null)
+{
+    var waiting = Record.Status is ServiceStatusKinds.Sent or ServiceStatusKinds.Pending;
+    var queuedHttp = Record.Status == ServiceStatusKinds.Pending && Record.Channel == "HTTP";
+    <div class="cmd-status">
+        <span class="badge @Fmt.StatusTone(Record.Status)">
+            @if (waiting)
+            {
+                <span class="spinner sm"></span>
+            }
+            @Fmt.Text(Record.Status)
+        </span>
+        <div class="cmd-meta">
+            <span class="time ago" title="@Fmt.Full(Record.UpdateTime)">@Fmt.Ago(Record.UpdateTime)</span>
+            @if (Record.Status == ServiceStatusKinds.Sent)
+            {
+                <span class="cmd-hint">@L["waiting for device reply…"]</span>
+            }
+            else if (queuedHttp)
+            {
+                <span class="cmd-hint">@L["queued until the device polls"]</span>
+            }
+            else if (!Record.OutputData.IsNullOrEmpty())
+            {
+                <span class="cmd-output" title="@Record.OutputData">@Fmt.Text(Record.OutputData)</span>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public ServiceRecord? Record { get; set; }
+}

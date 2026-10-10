@@ -1,0 +1,6 @@
+# Shell scripts must stay LF; CRLF makes Linux exec fail with "no such file or directory".
+*.sh text eol=lf
+*.cmd text eol=crlf
+docker-entrypoint.sh text eol=lf
+Dockerfile text eol=lf
+dist/docker/*.part0? binary

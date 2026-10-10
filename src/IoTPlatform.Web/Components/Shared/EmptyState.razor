@@ -1,0 +1,19 @@
+<div class="empty">
+    <Icon Name="@IconName" Size="36" Stroke="1.5" />
+    <h4>@(Title ?? L["Nothing here yet"])</h4>
+    @if (Text != null)
+    {
+        <div class="small">@Text</div>
+    }
+    @if (ChildContent != null)
+    {
+        <div class="mt">@ChildContent</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Text { get; set; }
+    [Parameter] public string IconName { get; set; } = "inbox";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

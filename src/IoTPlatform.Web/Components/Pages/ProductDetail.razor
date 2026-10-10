@@ -1,0 +1,558 @@
+@page "/products/{Id:int}"
+@inherits PlatformPage
+@inject ProductService Service
+@inject DeviceService Devices
+@inject MqttBrokerCatalog Brokers
+
+<PageTitle>@(_product?.Name ?? L["Product"]) · @L["NewLife IoT"]</PageTitle>
+
+@if (_product == null)
+{
+    @if (_notFound)
+    {
+        <EmptyState Title="@L["Product not found"]" IconName="box"><a class="btn" href="products">@L["Back to products"]</a></EmptyState>
+    }
+    else
+    {
+        <Loading />
+    }
+}
+else
+{
+    <div class="breadcrumb"><a href="products">@L["Products"]</a> / @_product.Name</div>
+    <div class="page-header">
+        <div>
+            <div class="row">
+                <h1>@_product.Name</h1>
+                <span class="badge @Fmt.ProtocolTone(_product.Protocol)">@Fmt.Text(_product.Protocol)</span>
+                @if (!_product.Enable)
+                {
+                    <span class="badge">@L["Disabled"]</span>
+                }
+            </div>
+            <p><span class="mono">@_product.Code</span> · @(_product.Remark ?? _product.Category ?? L["No description"])</p>
+        </div>
+        <div class="actions">
+            <a class="btn" href="devices?productId=@_product.Id"><Icon Name="cpu" Size="16" /> @L["Devices ({0})", _product.DeviceCount]</a>
+            <button class="btn btn-primary" @onclick="() => _showBatch = true"><Icon Name="send" Size="16" /> @L["Batch control"]</button>
+            <button class="btn" @onclick="OpenEditProduct"><Icon Name="edit" Size="16" /> @L["Edit product"]</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab @Active("properties")" @onclick='() => _tab = "properties"'>@L["Properties"] <span class="badge">@_properties.Count</span></button>
+        <button class="tab @Active("events")" @onclick='() => _tab = "events"'>@L["Events"] <span class="badge">@_events.Count</span></button>
+        <button class="tab @Active("services")" @onclick='() => _tab = "services"'>@L["Services"] <span class="badge">@_services.Count</span></button>
+        <button class="tab @Active("spec")" @onclick="OpenSpec">@L["TSL JSON"]</button>
+        <button class="tab @Active("info")" @onclick='() => _tab = "info"'>@L["Connection"]</button>
+    </div>
+
+    @switch (_tab)
+    {
+        case "properties":
+            <div class="card">
+                <div class="card-header">
+                    <h3>@L["Properties"] <span class="sub">@L["runtime state reported by devices; rw properties can be written from the platform"]</span></h3>
+                    <button class="btn btn-primary btn-sm" @onclick="() => OpenProperty(null)"><Icon Name="plus" Size="14" /> @L["Add property"]</button>
+                </div>
+                @if (_properties.Count == 0)
+                {
+                    <EmptyState Title="@L["No properties"]" Text="@L["Add properties such as temperature or switch."]" IconName="layers" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>@L["Identifier"]</th><th>@L["Name"]</th><th>@L["Type"]</th><th class="hide-sm">@L["Range / unit"]</th><th>@L["Access"]</th>
+                                    @if (IsDriver)
+                                    {
+                                        <th>@L["Point"]</th>
+                                    }
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in _properties)
+                                {
+                                    <tr>
+                                        <td class="mono">@ThingKey.Qualify(p.FunctionBlockId, p.Identifier) @if (!p.Enable) { <span class="badge">@L["Disabled"]</span> } @if (p.Required) { <span class="badge outline">@L["Mandatory"]</span> }</td>
+                                        <td>@p.Name</td>
+                                        <td><span class="badge outline mono">@p.DataType</span></td>
+                                        <td class="hide-sm small text-2">
+                                            @if (p.Max > p.Min) { <span>@p.Min – @p.Max</span> }
+                                            @p.Unit
+                                            @if (!p.Mapping.IsNullOrEmpty()) { <span class="muted"> (@p.Mapping)</span> }
+                                        </td>
+                                        <td><span class="badge @(p.AccessMode == "rw" ? "primary" : "")">@Fmt.Text(p.AccessMode)</span></td>
+                                        @if (IsDriver)
+                                        {
+                                            <td class="mono small">@p.Address @(p.PointType.IsNullOrEmpty() ? "" : $"· {p.PointType}") @(p.Scaling is 0 or 1 ? "" : $"×{p.Scaling}")</td>
+                                        }
+                                        <td class="actions">
+                                            <button class="btn btn-sm btn-ghost btn-icon" @onclick="() => OpenProperty(p)"><Icon Name="edit" Size="15" /></button>
+                                            <button class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => DeleteProperty(p)"><Icon Name="trash" Size="15" /></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            break;
+
+        case "events":
+            <div class="card">
+                <div class="card-header">
+                    <h3>@L["Events"] <span class="sub">@L["notifications and alerts pushed by devices"]</span></h3>
+                    <button class="btn btn-primary btn-sm" @onclick="() => OpenEvent(null)"><Icon Name="plus" Size="14" /> @L["Add event"]</button>
+                </div>
+                @if (_events.Count == 0)
+                {
+                    <EmptyState Title="@L["No events"]" Text="@L["Events can trigger rules (e.g. overheat → alarm)."]" IconName="bell" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>@L["Identifier"]</th><th>@L["Name"]</th><th>@L["Type"]</th><th>@L["Output"]</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var e in _events)
+                                {
+                                    <tr>
+                                        <td class="mono">@ThingKey.Qualify(e.FunctionBlockId, e.Identifier)</td>
+                                        <td>@e.Name</td>
+                                        <td><span class="badge @(e.Type == "alert" ? "warning" : e.Type == "error" ? "danger" : "info")">@Fmt.EventType(e.Type)</span></td>
+                                        <td class="mono small">@String.Join(", ", ProductService.ParseParameters(e.OutputData).Select(x => $"{x.Identifier}:{x.DataType}"))</td>
+                                        <td class="actions">
+                                            <button class="btn btn-sm btn-ghost btn-icon" @onclick="() => OpenEvent(e)"><Icon Name="edit" Size="15" /></button>
+                                            <button class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => DeleteEvent(e)"><Icon Name="trash" Size="15" /></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            break;
+
+        case "services":
+            <div class="card">
+                <div class="card-header">
+                    <h3>@L["Services"] <span class="sub">@L["capabilities the platform can invoke remotely"]</span></h3>
+                    <button class="btn btn-primary btn-sm" @onclick="() => OpenService(null)"><Icon Name="plus" Size="14" /> @L["Add service"]</button>
+                </div>
+                @if (_services.Count == 0)
+                {
+                    <EmptyState Title="@L["No services"]" Text="@L["Services such as reboot or calibrate can be invoked from device pages and rules."]" IconName="send" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table">
+                            <thead><tr><th>@L["Identifier"]</th><th>@L["Name"]</th><th>@L["Call"]</th><th>@L["Input"]</th><th>@L["Output"]</th><th></th></tr></thead>
+                            <tbody>
+                                @foreach (var s in _services)
+                                {
+                                    <tr>
+                                        <td class="mono">@ThingKey.Qualify(s.FunctionBlockId, s.Identifier)</td>
+                                        <td>@s.Name <span class="sub">@s.Remark</span></td>
+                                        <td><span class="badge">@Fmt.Text(s.CallType)</span></td>
+                                        <td class="mono small">@String.Join(", ", ProductService.ParseParameters(s.InputData).Select(x => $"{x.Identifier}:{x.DataType}"))</td>
+                                        <td class="mono small">@String.Join(", ", ProductService.ParseParameters(s.OutputData).Select(x => $"{x.Identifier}:{x.DataType}"))</td>
+                                        <td class="actions">
+                                            <button class="btn btn-sm btn-ghost btn-icon" @onclick="() => OpenService(s)"><Icon Name="edit" Size="15" /></button>
+                                            <button class="btn btn-sm btn-ghost btn-icon btn-danger" @onclick="() => DeleteService(s)"><Icon Name="trash" Size="15" /></button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            break;
+
+        case "spec":
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>@L["Export"] <span class="sub">@L["Aliyun TSL"]</span></h3>
+                        <a class="btn btn-sm" href="@ExportHref" target="_blank"><Icon Name="download" Size="14" /> @L["Open JSON"]</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-grid" style="margin-bottom:12px">
+                            <div class="field">
+                                <label>@L["Module"]</label>
+                                <select class="select" @bind="_specBlock" @bind:after="OpenSpec">
+                                    <option value="">@L["Default module"]</option>
+                                    @foreach (var block in _blocks)
+                                    {
+                                        <option value="@block.FunctionBlockId">@block.FunctionBlockName (@block.FunctionBlockId)</option>
+                                    }
+                                    <option value="*">@L["All modules (platform extension)"]</option>
+                                </select>
+                            </div>
+                        </div>
+                        <pre class="code-block">@_specJson</pre>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3>@L["Import"]</h3><span class="muted small">@L["merges by identifier"]</span></div>
+                    <div class="card-body">
+                        <textarea class="input" style="min-height:340px" placeholder="@L["Paste an Aliyun TSL JSON document…"]" @bind="_importJson"></textarea>
+                        <div class="row mt">
+                            <button class="btn btn-primary" disabled="@_importJson.IsNullOrWhiteSpace()" @onclick="Import"><Icon Name="upload" Size="16" /> @L["Import thing model"]</button>
+                            <span class="muted small">@L["Properties, events and services with matching identifiers are overwritten."]</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            break;
+
+        default:
+            <div class="card">
+                <div class="card-header"><h3>@L["How devices connect"]</h3></div>
+                <div class="card-body">
+                    <dl class="kv">
+                        <dt>@L["Protocol"]</dt><dd>@Fmt.Text(_product.Protocol)</dd>
+                        @if (IsDriver)
+                        {
+                            <dt>@L["Driver"]</dt><dd class="mono">@_product.DriverName</dd>
+                            <dt>@L["Parameters"]</dt><dd class="mono">@(_product.DriverParameter ?? "—")</dd>
+                            <dt>@L["Poll interval"]</dt><dd>@(_product.PollInterval > 0 ? $"{_product.PollInterval} ms" : L["platform default"])</dd>
+                        }
+                        else if (_product.Protocol == AccessProtocols.Mqtt)
+                        {
+                            <dt>@L["Default MQTT broker"]</dt><dd class="mono">@_brokerLabel</dd>
+                            <dt>@L["Credentials"]</dt><dd>@L["username = device code, password = device secret"]</dd>
+                            <dt>@L["Uplink topics"]</dt><dd class="mono">iot/@_product.Code/{device}/property/post · event/post · service/reply · heartbeat</dd>
+                            <dt>@L["Downlink topics"]</dt><dd class="mono">iot/@_product.Code/{device}/service/invoke · property/set</dd>
+                            <dt>@L["Alink uplink"]</dt><dd class="mono">/sys/@_product.Code/{device}/thing/event/property/post · thing/event/{identifier}/post · thing/service/{identifier}_reply</dd>
+                            <dt>@L["Alink downlink"]</dt><dd class="mono">/sys/@_product.Code/{device}/thing/service/property/set · thing/service/{identifier}</dd>
+                            <dt>@L["Codec"]</dt><dd>@_product.Codec</dd>
+                        }
+                        else
+                        {
+                            <dt>@L["Endpoints"]</dt><dd class="mono">POST /api/device-access/{device}/properties · events · heartbeat · reply, GET commands</dd>
+                            <dt>@L["Auth"]</dt><dd>@L["Header"] <code>X-Device-Secret: &lt;device secret&gt;</code></dd>
+                            <dt>@L["Codec"]</dt><dd>@_product.Codec</dd>
+                        }
+                        <dt>@L["Offline timeout"]</dt><dd>@(_product.OnlineTimeout > 0 ? $"{_product.OnlineTimeout} s" : L["platform default"])</dd>
+                        <dt>@L["Created"]</dt><dd>@Fmt.Full(_product.CreateTime)</dd>
+                    </dl>
+                </div>
+            </div>
+            break;
+    }
+}
+
+@if (_product != null)
+{
+    <BatchControlDialog @bind-Show="_showBatch" Scope="_batchScope" Title="@L["Batch control"]" ScopeLabel="@L["product {0}", _product.Name]" />
+}
+
+<Modal @bind-Show="_showProduct" Title="@L["Edit product"]" Size="lg">
+    <ChildContent><ProductForm Model="_productForm" OnSubmit="SaveProduct" /></ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showProduct = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="product-form">@L["Save changes"]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showProperty" Title="@(_editId > 0 ? L["Edit property"] : L["Add property"])" Size="lg">
+    <ChildContent>
+        <EditForm Model="_propForm" OnValidSubmit="SaveProperty" id="prop-form">
+            <LocalizedValidator />
+            <ValidationSummary class="validation-errors" />
+            <div class="form-grid">
+                <div class="field"><label>@L["Identifier *"]</label><InputText class="input mono" @bind-Value="_propForm.Identifier" placeholder="temperature" /></div>
+                <div class="field"><label>@L["Name"]</label><InputText class="input" @bind-Value="_propForm.Name" placeholder="@L["Temperature"]" /></div>
+                <div class="field">
+                    <label>@L["Data type *"]</label>
+                    <InputSelect class="select" @bind-Value="_propForm.DataType">
+                        @foreach (var t in TslTypes.All)
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="field">
+                    <label>@L["Access"]</label>
+                    <InputSelect class="select" @bind-Value="_propForm.AccessMode">
+                        <option value="r">@L["r — read only"]</option>
+                        <option value="w">@L["w — write only"]</option>
+                        <option value="rw">@L["rw — read / write"]</option>
+                    </InputSelect>
+                </div>
+                <div class="field"><label>@L["Module"]</label><InputText class="input mono" @bind-Value="_propForm.FunctionBlockId" placeholder="@L["empty = default module"]" /></div>
+                <div class="field"><label>@L["Module name"]</label><InputText class="input" @bind-Value="_propForm.FunctionBlockName" /></div>
+                @if (_propForm.DataType is "int" or "float" or "double")
+                {
+                    <div class="field"><label>@L["Min"]</label><InputNumber class="input" @bind-Value="_propForm.Min" /></div>
+                    <div class="field"><label>@L["Max"]</label><InputNumber class="input" @bind-Value="_propForm.Max" /></div>
+                    <div class="field"><label>@L["Step"]</label><InputNumber class="input" @bind-Value="_propForm.Step" /><span class="hint">@L["Values are rounded to the step's precision"]</span></div>
+                    <div class="field"><label>@L["Unit"]</label><InputText class="input" @bind-Value="_propForm.Unit" placeholder="@L["°C"]" /></div>
+                    <div class="field"><label>@L["Unit name"]</label><InputText class="input" @bind-Value="_propForm.UnitName" placeholder="@L["Celsius"]" /></div>
+                }
+                @if (_propForm.DataType is "text" or "array")
+                {
+                    <div class="field"><label>@(_propForm.DataType == "array" ? L["Array size"] : L["Length"])</label><InputNumber class="input" @bind-Value="_propForm.Length" /></div>
+                }
+                @if (_propForm.DataType == "array")
+                {
+                    <div class="field">
+                        <label>@L["Item type"]</label>
+                        <InputSelect class="select" @bind-Value="_propForm.ItemType">
+                            @foreach (var t in new[] { "int", "float", "double", "text", "struct" })
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </InputSelect>
+                    </div>
+                }
+                @if (_propForm.DataType is "bool" or "enum")
+                {
+                    <div class="field full"><label>@L["Enum mapping"]</label><InputText class="input" @bind-Value="_propForm.Mapping" placeholder="@L["0=Off,1=On"]" /></div>
+                }
+                @if (_propForm.DataType == "struct")
+                {
+                    <div class="field full"><label>@L["Struct specs"]</label><InputTextArea class="input" rows="6" @bind-Value="_propForm.Specs" placeholder='[{"identifier":"longitude","name":"经度","dataType":{"type":"double","specs":{"min":"-180","max":"180"}}}]' /></div>
+                }
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_propForm.Required" /> @L["Mandatory"]</label></div>
+                @if (IsDriver)
+                {
+                    <div class="field"><label>@L["Point address"]</label><InputText class="input mono" @bind-Value="_propForm.Address" placeholder="@L["4x0 (Modbus holding register 0)"]" /></div>
+                    <div class="field">
+                        <label>@L["Raw point type"]</label>
+                        <InputSelect class="select" @bind-Value="_propForm.PointType">
+                            <option value="">@L["same as data type"]</option>
+                            @foreach (var t in new[] { "ushort", "short", "uint", "int", "float", "double", "bool" })
+                            {
+                                <option value="@t">@t</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="field"><label>@L["Scaling"]</label><InputNumber class="input" @bind-Value="_propForm.Scaling" /><span class="hint">@L["Engineering value = raw × scaling (0 = none)"]</span></div>
+                }
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_propForm.Enable" /> @L["Enabled"]</label></div>
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showProperty = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="prop-form">@L["Save property"]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showEvent" Title="@(_editId > 0 ? L["Edit event"] : L["Add event"])">
+    <ChildContent>
+        <EditForm Model="_eventForm" OnValidSubmit="SaveEvent" id="event-form">
+            <LocalizedValidator />
+            <ValidationSummary class="validation-errors" />
+            <div class="form-grid">
+                <div class="field"><label>@L["Identifier *"]</label><InputText class="input mono" @bind-Value="_eventForm.Identifier" placeholder="overheat" /></div>
+                <div class="field"><label>@L["Name"]</label><InputText class="input" @bind-Value="_eventForm.Name" /></div>
+                <div class="field">
+                    <label>@L["Type"]</label>
+                    <InputSelect class="select" @bind-Value="_eventForm.Type">
+                        <option value="info">@L["Info"]</option>
+                        <option value="alert">@L["Alert"]</option>
+                        <option value="error">@L["Error"]</option>
+                    </InputSelect>
+                </div>
+                <div class="field"><label>@L["Module"]</label><InputText class="input mono" @bind-Value="_eventForm.FunctionBlockId" placeholder="@L["empty = default module"]" /></div>
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_eventForm.Required" /> @L["Mandatory"]</label></div>
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_eventForm.Enable" /> @L["Enabled"]</label></div>
+                <div class="field full"><label>@L["Output parameters"]</label><ParamEditor Items="_eventForm.OutputData" /></div>
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showEvent = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="event-form">@L["Save event"]</button>
+    </Footer>
+</Modal>
+
+<Modal @bind-Show="_showService" Title="@(_editId > 0 ? L["Edit service"] : L["Add service"])" Size="lg">
+    <ChildContent>
+        <EditForm Model="_serviceForm" OnValidSubmit="SaveService" id="service-form">
+            <LocalizedValidator />
+            <ValidationSummary class="validation-errors" />
+            <div class="form-grid">
+                <div class="field"><label>@L["Identifier *"]</label><InputText class="input mono" @bind-Value="_serviceForm.Identifier" placeholder="reboot" /></div>
+                <div class="field"><label>@L["Name"]</label><InputText class="input" @bind-Value="_serviceForm.Name" /></div>
+                <div class="field">
+                    <label>@L["Call type"]</label>
+                    <InputSelect class="select" @bind-Value="_serviceForm.CallType">
+                        <option value="async">@L["async"]</option>
+                        <option value="sync">@L["sync"]</option>
+                    </InputSelect>
+                </div>
+                <div class="field"><label>@L["Module"]</label><InputText class="input mono" @bind-Value="_serviceForm.FunctionBlockId" placeholder="@L["empty = default module"]" /></div>
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_serviceForm.Required" /> @L["Mandatory"]</label></div>
+                <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_serviceForm.Enable" /> @L["Enabled"]</label></div>
+                <div class="field full"><label>@L["Input parameters"]</label><ParamEditor Items="_serviceForm.InputData" /></div>
+                <div class="field full"><label>@L["Output parameters"]</label><ParamEditor Items="_serviceForm.OutputData" /></div>
+                <div class="field full"><label>@L["Description"]</label><InputText class="input" @bind-Value="_serviceForm.Remark" /></div>
+            </div>
+        </EditForm>
+    </ChildContent>
+    <Footer>
+        <button class="btn" @onclick="() => _showService = false">@L["Cancel"]</button>
+        <button class="btn btn-primary" type="submit" form="service-form">@L["Save service"]</button>
+    </Footer>
+</Modal>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Product? _product;
+    private bool _notFound;
+    private string _tab = "properties";
+    private IList<ThingProperty> _properties = [];
+    private IList<ThingEvent> _events = [];
+    private IList<ThingService> _services = [];
+    private string _specJson = "";
+    private string _specBlock = "";
+    private string _importJson = "";
+    private IList<TslFunctionBlock> _blocks = [];
+
+    private bool _showProduct, _showProperty, _showEvent, _showService, _showBatch;
+    private BatchScope _batchScope = new();
+    private int _editId;
+    private ProductInput _productForm = new();
+    private ThingPropertyInput _propForm = new();
+    private ThingEventInput _eventForm = new();
+    private ThingServiceInput _serviceForm = new();
+
+    private bool IsDriver => _product?.Protocol == AccessProtocols.Driver;
+    private string _brokerLabel => _product == null
+        ? "—"
+        : string.IsNullOrWhiteSpace(_product.BrokerProfileId)
+            ? $"{L["platform default"]} ({Brokers.PlatformDefaultId})"
+            : Brokers.FindChoice(_product.BrokerProfileId) is { } c ? $"{c.Name} ({c.Id})" : _product.BrokerProfileId;
+    private string Active(string tab) => _tab == tab ? "active" : "";
+
+    protected override void OnParametersSet() => Load();
+
+    private void Load()
+    {
+        _product = Product.FindById(Id);
+        _notFound = _product == null;
+        if (_product == null) return;
+
+        _batchScope = new BatchScope { Type = BatchScopeType.Product, ProductId = Id };
+        _properties = Service.GetProperties(Id);
+        _events = Service.GetEvents(Id);
+        _services = Service.GetServices(Id);
+        _blocks = TslDocument.ParseCatalog(_product.FunctionBlocks);
+    }
+
+    private string ExportHref => _specBlock == "*"
+        ? $"api/products/{Id}/tsl?full=true"
+        : string.IsNullOrEmpty(_specBlock) ? $"api/products/{Id}/tsl" : $"api/products/{Id}/tsl?block={Uri.EscapeDataString(_specBlock)}";
+
+    private void OpenSpec()
+    {
+        _tab = "spec";
+        _specJson = _specBlock == "*" ? Service.ExportTsl(Id, null, true) : Service.ExportTsl(Id, _specBlock, false);
+    }
+
+    private void OpenEditProduct()
+    {
+        _productForm = ProductInput.From(_product!);
+        _showProduct = true;
+    }
+
+    private async Task SaveProduct()
+    {
+        if (await Run(() => Service.Update(Id, _productForm), L["Product updated"]))
+        {
+            _showProduct = false;
+            Load();
+        }
+    }
+
+    private void OpenProperty(ThingProperty? p)
+    {
+        _editId = p?.Id ?? 0;
+        _propForm = p == null ? new ThingPropertyInput { Sort = _properties.Count } : ThingPropertyInput.From(p);
+        _showProperty = true;
+    }
+
+    private async Task SaveProperty()
+    {
+        if (await Run(() => Service.SaveProperty(Id, _editId, _propForm), L["Property saved"]))
+        {
+            _showProperty = false;
+            Load();
+        }
+    }
+
+    private async Task DeleteProperty(ThingProperty p)
+    {
+        if (await Confirm(L["Delete property '{0}'?", p.Identifier]) && await Run(() => Service.DeleteProperty(Id, p.Id), L["Property deleted"])) Load();
+    }
+
+    private void OpenEvent(ThingEvent? e)
+    {
+        _editId = e?.Id ?? 0;
+        _eventForm = e == null
+            ? new ThingEventInput { Sort = _events.Count }
+            : new ThingEventInput { Identifier = e.Identifier, Name = e.Name, Type = e.Type ?? "info", Required = e.Required, FunctionBlockId = e.FunctionBlockId, OutputData = ProductService.ParseParameters(e.OutputData), Sort = e.Sort, Enable = e.Enable, Remark = e.Remark };
+        _showEvent = true;
+    }
+
+    private async Task SaveEvent()
+    {
+        if (await Run(() => Service.SaveEvent(Id, _editId, _eventForm), L["Event saved"]))
+        {
+            _showEvent = false;
+            Load();
+        }
+    }
+
+    private async Task DeleteEvent(ThingEvent e)
+    {
+        if (await Confirm(L["Delete event '{0}'?", e.Identifier]) && await Run(() => Service.DeleteEvent(Id, e.Id), L["Event deleted"])) Load();
+    }
+
+    private void OpenService(ThingService? s)
+    {
+        _editId = s?.Id ?? 0;
+        _serviceForm = s == null
+            ? new ThingServiceInput { Sort = _services.Count }
+            : new ThingServiceInput { Identifier = s.Identifier, Name = s.Name, CallType = s.CallType ?? "async", Required = s.Required, FunctionBlockId = s.FunctionBlockId, InputData = ProductService.ParseParameters(s.InputData), OutputData = ProductService.ParseParameters(s.OutputData), Sort = s.Sort, Enable = s.Enable, Remark = s.Remark };
+        _showService = true;
+    }
+
+    private async Task SaveService()
+    {
+        if (await Run(() => Service.SaveService(Id, _editId, _serviceForm), L["Service saved"]))
+        {
+            _showService = false;
+            Load();
+        }
+    }
+
+    private async Task DeleteService(ThingService s)
+    {
+        if (await Confirm(L["Delete service '{0}'?", s.Identifier]) && await Run(() => Service.DeleteService(Id, s.Id), L["Service deleted"])) Load();
+    }
+
+    private async Task Import()
+    {
+        (int Properties, int Events, int Services) result = default;
+        if (await Run(() => result = Service.ImportModel(Id, _importJson)))
+        {
+            Toasts.Success(L["Imported {0} properties, {1} events, {2} services", result.Properties, result.Events, result.Services]);
+            _importJson = "";
+            Load();
+            OpenSpec();
+        }
+    }
+}

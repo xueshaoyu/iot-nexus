@@ -1,0 +1,94 @@
+@* 数值滑块：拖动时填充实时变化，悬停/拖动/聚焦时在滑块上方显示数值，松开（或键盘调整后）提交 *@
+@using System.Globalization
+
+<div class="slider @(Disabled ? "disabled" : "")" style="--fill:@Inv(Percent)%" title="@Title"
+     data-min="@Inv(Min)" data-max="@Inv(Max)" data-step="@Inv(EffectiveStep)" data-decimals="@Decimals" data-unit="@Unit"
+     data-preview="@L["Preview value"]" data-current="@L["Now"]">
+    <input type="range" class="range" min="@Inv(Min)" max="@Inv(Max)" step="@Inv(EffectiveStep)" value="@Inv(_current)"
+           disabled="@Disabled" aria-label="@Label" aria-valuetext="@($"{Format(_current)} {Unit}")"
+           @oninput="OnInput" @onchange="OnChange" />
+    @* 内容与位置由 wwwroot/slider.js 在浏览器端维护（悬停预计值 / 拖动实时值） *@
+    <span class="slider-bubble" aria-hidden="true"></span>
+    @if (Busy)
+    {
+        <span class="spinner sm slider-busy"></span>
+    }
+</div>
+
+@code {
+    [Parameter] public double? Value { get; set; }
+    [Parameter] public double Min { get; set; }
+    [Parameter] public double Max { get; set; } = 100;
+    [Parameter] public double Step { get; set; }
+    [Parameter] public bool Integer { get; set; }
+    [Parameter] public string? Unit { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>松开滑块或键盘调整后触发</summary>
+    [Parameter] public EventCallback<double> OnCommit { get; set; }
+
+    private double _current;
+    private double? _external;
+    private bool _dragging;
+    private bool _initialized;
+
+    private double EffectiveStep => Step > 0 ? Step : Integer ? 1 : (Max - Min) / 100;
+    private double Percent => Max > Min ? Math.Clamp((_current - Min) * 100 / (Max - Min), 0, 100) : 0;
+
+    protected override void OnParametersSet()
+    {
+        // 仅在外部值真正变化（设备上报新值）且未拖动时同步，避免提交后等待回复期间滑块跳回旧值
+        if (!_initialized || (!_dragging && Value != _external))
+        {
+            _current = Clamp(Value ?? Min);
+            _external = Value;
+            _initialized = true;
+        }
+    }
+
+    private void OnInput(ChangeEventArgs e)
+    {
+        if (!TryParse(e.Value, out var v)) return;
+
+        _dragging = true;
+        _current = Clamp(v);
+    }
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        _dragging = false;
+        if (!TryParse(e.Value, out var v)) return;
+
+        _current = Clamp(v);
+        await OnCommit.InvokeAsync(_current);
+    }
+
+    private double Clamp(double v)
+    {
+        if (Max > Min) v = Math.Clamp(v, Min, Max);
+        var step = EffectiveStep;
+        if (step > 0) v = Min + Math.Round((v - Min) / step) * step;
+        return Math.Round(v, Decimals);
+    }
+
+    private int Decimals
+    {
+        get
+        {
+            if (Integer) return 0;
+            var text = EffectiveStep.ToString("0.##########", CultureInfo.InvariantCulture);
+            var idx = text.IndexOf('.');
+            return idx < 0 ? 0 : Math.Min(6, text.Length - idx - 1);
+        }
+    }
+
+    private string Format(double v) => v.ToString(Decimals == 0 ? "0" : "0." + new string('#', Decimals), CultureInfo.InvariantCulture);
+
+    private static string Inv(double v) => v.ToString(CultureInfo.InvariantCulture);
+
+    private static bool TryParse(object? value, out double v) =>
+        double.TryParse(value?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out v);
+}

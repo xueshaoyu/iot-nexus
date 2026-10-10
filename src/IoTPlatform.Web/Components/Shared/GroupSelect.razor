@@ -1,0 +1,27 @@
+@inject DeviceGroupService Groups
+
+<select class="select @Class" value="@Value" @onchange="Changed">
+    <option value="0">@(EmptyText ?? L["All groups"])</option>
+    @if (ShowUngrouped)
+    {
+        <option value="-1">@L["— Ungrouped —"]</option>
+    }
+    @foreach (var n in Groups.GetTree())
+    {
+        <option value="@n.Group.Id">@(new string('\u00A0', n.Level * 4))@n.Group.Name</option>
+    }
+</select>
+
+@code {
+    [Parameter] public int Value { get; set; }
+    [Parameter] public EventCallback<int> ValueChanged { get; set; }
+    [Parameter] public string? EmptyText { get; set; }
+    [Parameter] public bool ShowUngrouped { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    private async Task Changed(ChangeEventArgs e)
+    {
+        Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+        await ValueChanged.InvokeAsync(Value);
+    }
+}

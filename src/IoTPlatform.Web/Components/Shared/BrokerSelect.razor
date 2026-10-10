@@ -1,0 +1,33 @@
+@inject MqttBrokerCatalog Catalog
+
+<InputSelect class="select" @bind-Value="Bound">
+    <option value="">@InheritLabel</option>
+    @foreach (var b in Catalog.Choices())
+    {
+        <option value="@b.Id">@Label(b)</option>
+    }
+</InputSelect>
+@if (!Hint.IsNullOrEmpty())
+{
+    <span class="hint">@Hint</span>
+}
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string InheritLabel { get; set; } = "";
+    [Parameter] public string? Hint { get; set; }
+
+    private string Bound
+    {
+        get => Value ?? "";
+        set => _ = ValueChanged.InvokeAsync(string.IsNullOrWhiteSpace(value) ? null : value);
+    }
+
+    private string Label(MqttBrokerChoice b)
+    {
+        var name = b.Kind == MqttModes.Embedded ? L["Embedded (built-in)"] : b.Name;
+        var mark = b.IsDefault ? $" · {L["platform default"]}" : "";
+        return $"{name} ({b.Id}) — {b.Server}{mark}";
+    }
+}

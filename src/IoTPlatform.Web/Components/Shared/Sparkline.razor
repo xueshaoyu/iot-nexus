@@ -1,0 +1,46 @@
+@* 数值历史折线 *@
+@if (Values.Count < 2)
+{
+    <EmptyState Title="@L["Not enough numeric data"]" Text="@L["Select a numeric property that has reported at least twice."]" IconName="activity" />
+}
+else
+{
+    <svg class="chart" viewBox="0 0 @W @H" preserveAspectRatio="none" role="img" aria-label="History chart">
+        <defs>
+            <linearGradient id="sparkFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#6366f1" stop-opacity=".22" />
+                <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+            </linearGradient>
+        </defs>
+        @for (var i = 0; i <= 3; i++)
+        {
+            var y = Pad + (H - Pad * 2) * i / 3.0;
+            <g>
+                <line class="grid-line" x1="40" x2="@W" y1="@F(y)" y2="@F(y)" />
+                <text class="axis" x="34" y="@F(y + 3)" text-anchor="end">@F(Max - (Max - Min) * i / 3.0)</text>
+            </g>
+        }
+        <path d="@Area" fill="url(#sparkFill)" />
+        <path d="@Line" fill="none" stroke="#6366f1" stroke-width="2" />
+        <text class="axis" x="40" y="@(H - 2)">@Values[0].Time.ToString("HH:mm:ss")</text>
+        <text class="axis" x="@W" y="@(H - 2)" text-anchor="end">@Values[^1].Time.ToString("HH:mm:ss")</text>
+    </svg>
+}
+
+@code {
+    [Parameter] public IList<(DateTime Time, double Value)> Values { get; set; } = [];
+
+    private const double W = 760, H = 200, Pad = 14;
+
+    private double Min => Values.Min(e => e.Value) - Range * 0.05;
+    private double Max => Values.Max(e => e.Value) + Range * 0.05;
+    private double Range => Math.Max(0.0001, Values.Max(e => e.Value) - Values.Min(e => e.Value));
+
+    private double X(int i) => 40 + (W - 40) * i / Math.Max(1, Values.Count - 1);
+    private double Y(double v) => H - Pad - (H - Pad * 2) * (v - Min) / Math.Max(0.0001, Max - Min);
+
+    private string Line => String.Join(" ", Values.Select((p, i) => $"{(i == 0 ? "M" : "L")}{F(X(i))},{F(Y(p.Value))}"));
+    private string Area => $"{Line} L{F(X(Values.Count - 1))},{F(H - Pad)} L{F(X(0))},{F(H - Pad)} Z";
+
+    private static string F(double v) => v.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}

@@ -1,0 +1,125 @@
+@page "/access-logs"
+@inherits PlatformPage
+@inject AccessLogService Service
+
+<PageTitle>@L["Access logs · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Access logs"]</h1>
+        <p>@L["Visits to the admin UI and API. Static files and Blazor heartbeats are omitted. The client IP prefers CF-Connecting-IP when the request comes from a trusted proxy."]</p>
+    </div>
+</div>
+
+<div class="grid grid-4 mb">
+    <StatCard Label="@L["Page views today"]" Value="@_summary.Pv.ToString()" IconName="activity" />
+    <StatCard Label="@L["Unique IPs"]" Value="@_summary.UniqueIps.ToString()" IconName="wifi" Tone="info" />
+    <StatCard Label="@L["Top referrers"]" Value="@(_summary.Referers.FirstOrDefault()?.Name is { Length: > 0 } referer ? referer : L["Direct visit"].Value)" Sub="@TopSub(_summary.Referers)" IconName="send" />
+    <StatCard Label="@L["Top regions"]" Value="@(_summary.Countries.FirstOrDefault()?.Name is { Length: > 0 } country ? country : "—")" Sub="@TopSub(_summary.Countries)" IconName="radio" Tone="success" />
+</div>
+
+<div class="card mb">
+    <div class="card-header"><h3>@L["Top browsers"]</h3></div>
+    <div class="card-body">
+        @if (_summary.Browsers.Count == 0)
+        {
+            <span class="muted">@L["No access logs"]</span>
+        }
+        else
+        {
+            <div class="row">
+                @foreach (var item in _summary.Browsers)
+                {
+                    <span class="badge">@(item.Name.Length == 0 ? L["Direct visit"] : item.Name) · @item.Count</span>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="toolbar">
+        <input class="input sm" placeholder="yyyy-MM-dd HH:mm" @bind="_fromText" />
+        <input class="input sm" placeholder="yyyy-MM-dd HH:mm" @bind="_toText" />
+        <input class="input sm" placeholder="@L["Client IP"]" @bind="_ip" />
+        <input class="input sm" placeholder="@L["Request path"]" @bind="_path" />
+        <input class="input sm" placeholder="@L["Referer"]" @bind="_referer" />
+        <button class="btn btn-primary btn-sm" @onclick="Search">@L["Apply filters"]</button>
+    </div>
+    @if (_result.Items.Count == 0)
+    {
+        <EmptyState Title="@L["No access logs"]" Text="@L["Nothing matches the current filters."]" IconName="activity" />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@L["Time"]</th>
+                        <th>@L["Client IP"]</th>
+                        <th class="hide-sm">@L["Country"]</th>
+                        <th>@L["Request path"]</th>
+                        <th class="hide-sm">@L["Referer"]</th>
+                        <th class="hide-sm">@L["Browser"]</th>
+                        <th>@L["Status"]</th>
+                        <th class="hide-sm">@L["Duration"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _result.Items)
+                    {
+                        <tr>
+                            <td class="small nowrap">@Fmt.Full(row.CreateTime)</td>
+                            <td class="mono">@row.ClientIp</td>
+                            <td class="hide-sm">@(row.Country.IsNullOrEmpty() ? "—" : row.Country)</td>
+                            <td>
+                                <span class="mono">@row.Method @row.Path</span>
+                                @if (!row.QueryString.IsNullOrEmpty()) { <span class="sub">?@row.QueryString</span> }
+                                @if (!row.Host.IsNullOrEmpty()) { <span class="sub">@row.Host</span> }
+                            </td>
+                            <td class="hide-sm small">@(row.RefererHost.IsNullOrEmpty() ? L["Direct visit"] : row.Referer)</td>
+                            <td class="hide-sm">@row.Browser <span class="sub">@row.Os</span> @if (row.Bot) { <span class="badge">@L["Bot"]</span> }</td>
+                            <td>@row.StatusCode</td>
+                            <td class="hide-sm small">@row.DurationMs ms</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <Pager PageIndex="_result.PageIndex" PageSize="_result.PageSize" Total="_result.Total" OnChange="p => { _page = p; Load(); }" />
+    }
+</div>
+
+@code {
+    private PagedResult<IoTPlatform.Data.AccessLog> _result = new([], 0, 1, 20);
+    private AccessLogSummary _summary = new(0, 0, [], [], []);
+    private string _fromText = DateTime.Today.ToString("yyyy-MM-ddTHH:mm");
+    private string _toText = "";
+    private string _ip = "";
+    private string _path = "";
+    private string _referer = "";
+    private int _page = 1;
+
+    protected override void OnInitialized()
+    {
+        Load();
+    }
+
+    private void Search()
+    {
+        _page = 1;
+        Load();
+    }
+
+    private void Load()
+    {
+        _summary = Service.Summarize(DateTime.Today, DateTime.Today.AddDays(1));
+        _result = Service.Query(Parse(_fromText), Parse(_toText), _ip, _path, _referer, _page, 20);
+    }
+
+    private static DateTime? Parse(string text) => DateTime.TryParse(text, out var value) ? value : null;
+
+    private string TopSub(IList<NameCount> items) =>
+        items.Count == 0 ? "" : string.Join(" · ", items.Take(3).Select(e => $"{(e.Name.Length == 0 ? L["Direct visit"].Value : e.Name)} {e.Count}"));
+}

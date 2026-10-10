@@ -1,0 +1,172 @@
+﻿@page "/"
+@inherits PlatformPage
+@inject StatService Stats
+
+<PageTitle>@L["Dashboard · NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["Dashboard"]</h1>
+        <p>@L["Live overview of devices, messages and alarms. Refreshes every 3 seconds."]</p>
+    </div>
+    <div class="actions">
+        <a class="btn" href="devices"><Icon Name="cpu" Size="16" /> @L["Devices"]</a>
+        <a class="btn btn-primary" href="rules/new"><Icon Name="plus" Size="16" /> @L["New rule"]</a>
+    </div>
+</div>
+
+@if (_overview == null)
+{
+    <Loading />
+}
+else
+{
+    <div class="grid grid-4">
+        <StatCard Label="@L["Devices"]" Value="@_overview.Devices.ToString("N0")" Sub="@L["{0} enabled · {1} products", _overview.EnabledDevices, _overview.Products]" IconName="cpu" Tone="primary" />
+        <StatCard Label="@L["Online"]" Value="@($"{_overview.OnlineDevices}")" Sub="@L["{0}% online rate", _overview.OnlineRate.ToString("0.#")]" IconName="wifi" Tone="success">
+            <div class="progress mt" style="width:160px"><span style="width:@(_overview.OnlineRate.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span></div>
+        </StatCard>
+        <StatCard Label="@L["Messages today"]" Value="@Fmt.Number(_overview.MessagesToday)" Sub="@L["{0} in the last minute · {1} downlinks", _overview.MessagesLastMinute, _overview.DownlinksToday]" IconName="message" Tone="info" />
+        <StatCard Label="@L["Active alarms"]" Value="@_overview.ActiveAlarms.ToString()" Sub="@L["{0} raised today · {1} rules enabled", _overview.AlarmsToday, _overview.EnabledRules]" IconName="bell" Tone="@(_overview.ActiveAlarms > 0 ? "danger" : "success")" />
+    </div>
+
+    <div class="grid grid-main mt">
+        <div class="card">
+            <div class="card-header">
+                <h3>@L["Message volume"] <span class="sub">@L["Last 24 hours"]</span></h3>
+                <a class="btn btn-sm" href="stats">@L["Details"]</a>
+            </div>
+            <div class="card-body">
+                <TrendChart Points="_trend" Level="StatLevels.Hour" />
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3>@L["Products"]</h3><a class="btn btn-sm" href="products">@L["Manage"]</a></div>
+            <div class="card-body">
+                @if (_products.Count == 0)
+                {
+                    <EmptyState Title="@L["No products"]" Text="@L["Define a product to start registering devices."]" IconName="box" />
+                }
+                else
+                {
+                    <div class="stack" style="gap:14px">
+                        @foreach (var p in _products)
+                        {
+                            <div>
+                                <div class="row-between">
+                                    <a href="products/@p.ProductId" class="title"><strong>@p.ProductName</strong></a>
+                                    <span class="badge @Fmt.ProtocolTone(p.Protocol)">@Fmt.Text(p.Protocol)</span>
+                                </div>
+                                <div class="row-between small text-2" style="margin:6px 0">
+                                    <span>@L["{0} / {1} online", p.Online, p.Devices]</span>
+                                    <span>@L["{0} msgs today", Fmt.Number(p.MessagesToday)]</span>
+                                </div>
+                                <div class="progress"><span style="width:@(p.OnlineRate.ToString(System.Globalization.CultureInfo.InvariantCulture))%"></span></div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-2 mt">
+        <div class="card">
+            <div class="card-header"><h3>@L["Recent alarms"]</h3><a class="btn btn-sm" href="alarms">@L["All alarms"]</a></div>
+            <div class="card-body flush">
+                @if (_alarms.Count == 0)
+                {
+                    <EmptyState Title="@L["No alarms"]" Text="@L["Alarms raised by rules will appear here."]" IconName="bell" />
+                }
+                else
+                {
+                    <div class="table-wrap">
+                        <table class="table compact">
+                            <tbody>
+                                @foreach (var a in _alarms)
+                                {
+                                    <tr>
+                                        <td style="width:90px"><span class="badge @Fmt.LevelTone(a.Level)">@Fmt.Text(a.Level)</span></td>
+                                        <td>
+                                            <span class="title">@a.Title</span>
+                                            <span class="sub">@a.Content</span>
+                                        </td>
+                                        <td class="right nowrap small muted"><span class="ago right">@Fmt.Ago(a.UpdateTime)</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h3>@L["Device activity"]</h3><span class="muted small">@L["online / offline / rules / commands"]</span></div>
+            <div class="card-body" style="padding-top:6px;padding-bottom:6px">
+                @if (_history.Count == 0)
+                {
+                    <EmptyState Title="@L["No activity yet"]" IconName="activity" />
+                }
+                else
+                {
+                    <ul class="timeline">
+                        @foreach (var h in _history)
+                        {
+                            <li>
+                                <span class="when">@Fmt.Time(h.CreateTime)</span>
+                                <div style="min-width:0">
+                                    <span class="badge @ActionTone(h.Action) ">@ActionText(h.Action)</span>
+                                    <a href="devices/@h.DeviceId" style="margin-left:6px;font-weight:600">@h.DeviceName</a>
+                                    <div class="small muted" style="margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@h.Remark</div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private StatOverview? _overview;
+    private IList<TrendPoint> _trend = [];
+    private IList<ProductStat> _products = [];
+    private IList<Alarm> _alarms = [];
+    private IList<DeviceHistory> _history = [];
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(3), () => { Load(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        _overview = Stats.GetOverview();
+        _trend = Stats.GetTrend(StatLevels.Hour, 24);
+        _products = Stats.GetProductStats();
+        _alarms = Alarm.FindAll(null, "Id desc", null, 0, 6);
+        _history = DeviceHistory.FindAll(null, "Id desc", null, 0, 8);
+    }
+
+    internal static string ActionText(string? action) => Fmt.Text(action switch
+    {
+        DeviceActions.Register => "Registered",
+        DeviceActions.Enable => "Enabled",
+        DeviceActions.Disable => "Disabled",
+        DeviceActions.SetProperty => "Set property",
+        _ => action ?? "",
+    });
+
+    internal static string ActionTone(string? action) => action switch
+    {
+        DeviceActions.Online => "success",
+        DeviceActions.Offline or DeviceActions.Disable => "",
+        DeviceActions.Rule => "warning",
+        DeviceActions.Service or DeviceActions.SetProperty => "primary",
+        _ => "info",
+    };
+}
