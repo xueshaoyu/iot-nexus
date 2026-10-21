@@ -199,6 +199,47 @@ public class PlatformIntegrationTests(PlatformFixture fixture)
         Assert.False(Device.FindById(b1.Id)!.Online);
     }
 
+    [Fact]
+    public async Task Drivers_ModbusTcp_ReadsAndWritesBitFields()
+    {
+        var products = fixture.Get<ProductService>();
+        var devices = fixture.Get<DeviceService>();
+        var host = fixture.Get<DriverHostService>();
+        DriverRegistry.EnsureRegistered();
+
+        var port = FreePortForTest();
+        using var slave = new ModbusSlaveSimulator(port);
+        slave.Start();
+
+        var meter = products.Create(new ProductInput
+        {
+            Name = "Bit meter",
+            Code = "t-bit-meter",
+            Protocol = AccessProtocols.Driver,
+            DriverName = "ModbusTcp",
+            DriverParameter = $$"""{"Server":"127.0.0.1:{{port}}","Host":1,"ReadCode":3,"WriteCode":6}""",
+            PollInterval = 500,
+        });
+        products.SaveProperty(meter.Id, 0, new ThingPropertyInput { Identifier = "running", DataType = "int", Address = "4x6.0", PointType = "ushort", AccessMode = "rw" });
+        products.SaveProperty(meter.Id, 0, new ThingPropertyInput { Identifier = "alarm", DataType = "int", Address = "4x6.1", PointType = "ushort", AccessMode = "rw" });
+        var device = devices.Create(new DeviceInput { ProductId = meter.Id, Code = "t-bit-meter-1" });
+
+        await host.ReconcileAsync(CancellationToken.None);
+
+        Assert.True(await WaitFor(() => Shadow(device.Id, "running") == "1" && Shadow(device.Id, "alarm") == "0"), "bit 0 of register 6 starts set");
+
+        var commands = fixture.Get<DeviceCommandService>();
+        var write = await commands.SetPropertiesAsync(Device.FindById(device.Id)!, new Dictionary<String, Object?> { ["alarm"] = 1 }, "test");
+        Assert.Equal(ServiceStatusKinds.Success, write.Status);
+        Assert.True(await WaitFor(() => Shadow(device.Id, "running") == "1" && Shadow(device.Id, "alarm") == "1"), "setting bit 1 keeps bit 0");
+
+        write = await commands.SetPropertiesAsync(Device.FindById(device.Id)!, new Dictionary<String, Object?> { ["running"] = 0 }, "test");
+        Assert.Equal(ServiceStatusKinds.Success, write.Status);
+        Assert.True(await WaitFor(() => Shadow(device.Id, "running") == "0" && Shadow(device.Id, "alarm") == "1"), "clearing bit 0 keeps bit 1");
+    }
+
+    private static String? Shadow(Int32 deviceId, String name) => DeviceProperty.FindByDeviceIdAndName(deviceId, name)?.Value;
+
     private static Device ForceOnline(Device device, Boolean online)
     {
         device.Online = online;

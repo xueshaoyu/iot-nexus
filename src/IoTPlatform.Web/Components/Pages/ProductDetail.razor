@@ -325,7 +325,7 @@ else
                 <div class="field" style="justify-content:flex-end"><label class="check"><InputCheckbox @bind-Value="_propForm.Required" /> @L["Mandatory"]</label></div>
                 @if (IsDriver)
                 {
-                    <div class="field"><label>@L["Point address"]</label><InputText class="input mono" @bind-Value="_propForm.Address" placeholder="@L["4x0 (Modbus holding register 0)"]" /></div>
+                    <div class="field"><label>@L["Point address"]</label><InputText class="input mono" @bind-Value="_propForm.Address" placeholder="@L["4x0 (Modbus holding register 0)"]" /><span class="hint">@L["Bit field: 4x10.3 is bit 3 (bit 0 is the least significant bit); 4x10.0:4 is 4 bits from bit 0; 4x10.0-3 is bits 0 through 3."]</span></div>
                     <div class="field">
                         <label>@L["Raw point type"]</label>
                         <InputSelect class="select" @bind-Value="_propForm.PointType">

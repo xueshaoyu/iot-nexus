@@ -42,6 +42,12 @@ public class DriverHostService(DataIngestService ingestService, DeviceOnlineServ
         public String? LastError { get; set; }
     }
 
+    private sealed class BitWrite(IPoint point)
+    {
+        public IPoint Point { get; } = point;
+        public List<(BitField Field, UInt64 Value)> Fields { get; } = [];
+    }
+
     private const Int32 OfflineAfterFailures = 3;
     private readonly ConcurrentDictionary<Int32, Worker> _workers = new();
 
@@ -139,6 +145,8 @@ public class DriverHostService(DataIngestService ingestService, DeviceOnlineServ
                 specs.Min = p.Min;
                 specs.Max = p.Max;
                 specs.Step = p.Step;
+                // 缩放由平台处理。驱动默认 Scaling 为 0 时，非 0 的写入会被编码成 0。
+                ps.Scaling = 1;
                 return ps;
             }).ToArray(),
         };
@@ -209,7 +217,13 @@ public class DriverHostService(DataIngestService ingestService, DeviceOnlineServ
                 var name = points[i].Name;
                 if (name.IsNullOrEmpty() || raws[i] is Byte[]) continue;
 
-                values[name] = worker.Properties.TryGetValue(name, out var def) ? ThingValueConverter.Scale(def, raws[i]) : raws[i];
+                var raw = raws[i];
+                if (worker.Properties.TryGetValue(name, out var def))
+                {
+                    if (BitField.TryParse(def.Address, out var bits)) raw = BitField.Extract(raw, bits);
+                    values[name] = ThingValueConverter.Scale(def, raw);
+                }
+                else values[name] = raw;
             }
             if (values.Count == 0) throw new InvalidOperationException("No point values returned");
 
@@ -241,15 +255,43 @@ public class DriverHostService(DataIngestService ingestService, DeviceOnlineServ
         if (!_workers.TryGetValue(device.Id, out var worker)) return CommandResult.Failed("Driver is not running for this device");
 
         var requests = new List<WriteRequest>();
+        var bitGroups = new Dictionary<String, BitWrite>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in values)
         {
             var point = worker.Points.FirstOrDefault(e => name.EqualIgnoreCase(e.Name));
             if (point == null) return CommandResult.Failed($"Point '{name}' not found");
 
             var raw = value;
-            if (worker.Properties.TryGetValue(name, out var def) && def.Scaling != 0 && def.Scaling != 1 && ThingValueConverter.TryDouble(value, out var d))
-                raw = d / def.Scaling;
+            worker.Properties.TryGetValue(name, out var def);
+            if (def != null && def.Scaling != 0 && def.Scaling != 1 && ThingValueConverter.TryDouble(value, out var scaled))
+                raw = scaled / def.Scaling;
+
+            if (def != null && BitField.TryParse(def.Address, out var bits))
+            {
+                if (!BitField.TryFieldValue(raw, out var fieldValue)) return CommandResult.Failed($"Point '{name}' value is not an integer");
+                var register = BitField.RegisterAddress(def.Address);
+                if (!bitGroups.TryGetValue(register, out var group))
+                {
+                    group = new BitWrite(point);
+                    bitGroups[register] = group;
+                }
+                group.Fields.Add((bits, fieldValue));
+                continue;
+            }
+
             requests.Add(WriteRequest.From(point, raw));
+        }
+
+        foreach (var group in bitGroups.Values)
+        {
+            var read = await worker.Driver.ReadAsync(worker.Node, [group.Point], cancellationToken);
+            var currentRaw = read.Values?.FirstOrDefault();
+            if (!read.IsSuccess || currentRaw == null || currentRaw is Byte[] || !BitField.TryBits(currentRaw, out var register))
+                return CommandResult.Failed(read.Message ?? "Failed to read the register before a bit-field write");
+
+            foreach (var (bits, fieldValue) in group.Fields)
+                register = BitField.Insert(register, bits, fieldValue);
+            requests.Add(WriteRequest.From(group.Point, BitField.ToDriverBytes(currentRaw, register)));
         }
 
         var result = await worker.Driver.WriteAsync(worker.Node, requests.ToArray(), cancellationToken);

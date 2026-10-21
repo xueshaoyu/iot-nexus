@@ -17,6 +17,7 @@
   <data name="0=Off,1=On" xml:space="preserve"><value>0=关,1=开</value></data>
   <data name="2. Conditions" xml:space="preserve"><value>2. 条件</value></data>
   <data name="4x0 (Modbus holding register 0)" xml:space="preserve"><value>4x0（Modbus 保持寄存器 0）</value></data>
+  <data name="Bit field: 4x10.3 is bit 3 (bit 0 is the least significant bit); 4x10.0:4 is 4 bits from bit 0; 4x10.0-3 is bits 0 through 3." xml:space="preserve"><value>位域：4x10.3 表示第 3 位（第 0 位是最低位）；4x10.0:4 表示从第 0 位起的 4 位；4x10.0-3 表示第 0 到第 3 位。</value></data>
   <data name="A group cannot be moved under itself or its descendants" xml:space="preserve"><value>分组不能移动到自身或其子分组下</value></data>
   <data name="A product defines the thing model (properties, events, services) and how its devices connect." xml:space="preserve"><value>产品定义物模型（属性、事件、服务）以及设备的接入方式。</value></data>
   <data name="Access" xml:space="preserve"><value>访问</value></data>
