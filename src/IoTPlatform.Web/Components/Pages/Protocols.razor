@@ -59,7 +59,7 @@
                                 <tr>
                                     <td class="mono">@b.Id @if (b.Id == DefaultBroker) { <span class="badge">@L["default"]</span> }</td>
                                     <td>@(b.Kind == MqttModes.Embedded ? L["Embedded (built-in)"] : b.Name)</td>
-                                    <td class="mono small">@b.Server @(profile?.UseTls == true ? "(TLS)" : "") @if (profile != null && !profile.Password.IsNullOrEmpty()) { <span class="muted">· ••••</span> }</td>
+                                    <td class="mono small">@(profile?.EffectiveServer ?? b.Server) @(profile != null && MqttBrokerEndpoint.From(profile).UseTls ? "(TLS)" : "") @if (profile != null && !profile.Password.IsNullOrEmpty()) { <span class="muted">· ••••</span> }</td>
                                     <td class="hide-sm mono small">@b.TopicRoot</td>
                                     <td>@b.DeviceCount</td>
                                     <td class="nowrap">

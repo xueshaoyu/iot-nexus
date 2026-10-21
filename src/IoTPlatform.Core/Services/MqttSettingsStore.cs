@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using IoTPlatform.Data;
 using NewLife;
 
 namespace IoTPlatform.Services;
@@ -23,6 +24,8 @@ public class MqttSettingsStore
     public MqttSettingsStore(String? directory = null)
     {
         var data = directory;
+        if (String.IsNullOrWhiteSpace(data))
+            data = Environment.GetEnvironmentVariable(NewLifeHostPaths.DataPathEnv);
         if (String.IsNullOrWhiteSpace(data))
         {
             try { data = Setting.Current.DataPath; } catch { data = null; }

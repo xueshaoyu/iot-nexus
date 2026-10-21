@@ -908,6 +908,17 @@
   <data name="Letters, digits, hyphen and underscore. Cannot be “embedded”." xml:space="preserve"><value>字母、数字、连字符和下划线。不能使用 embedded。</value></data>
   <data name="Local Mosquitto" xml:space="preserve"><value>本地 Mosquitto</value></data>
   <data name="Example: tcp://host:1883. Use port 8883 with TLS enabled." xml:space="preserve"><value>例如 tcp://host:1883。启用 TLS 时常用 8883 端口。</value></data>
+  <data name="Scheme" xml:space="preserve"><value>传输协议</value></data>
+  <data name="Host" xml:space="preserve"><value>主机</value></data>
+  <data name="Port" xml:space="preserve"><value>端口</value></data>
+  <data name="Path" xml:space="preserve"><value>路径</value></data>
+  <data name="tcp / ssl for MQTT; ws / wss for MQTT over WebSocket." xml:space="preserve"><value>tcp / ssl 为 MQTT；ws / wss 为 MQTT over WebSocket。</value></data>
+  <data name="Defaults: tcp 1883, ssl 8883, ws 8083, wss 443." xml:space="preserve"><value>默认端口：tcp 1883、ssl 8883、ws 8083、wss 443。</value></data>
+  <data name="Used for ws/wss, for example /mqtt. Empty uses /mqtt." xml:space="preserve"><value>仅 ws/wss 使用，例如 /mqtt。留空则用 /mqtt。</value></data>
+  <data name="Scheme, host, port and path are composed into this URL. You can also paste a full URL (tcp/ssl/ws/wss)." xml:space="preserve"><value>由协议、主机、端口和路径合成。也可以直接粘贴完整 URL（tcp/ssl/ws/wss）。</value></data>
+  <data name="Implied by ssl and wss." xml:space="preserve"><value>ssl 与 wss 自动启用 TLS。</value></data>
+  <data name="MQTT broker scheme '{0}' is invalid" xml:space="preserve"><value>MQTT 传输协议「{0}」不合法</value></data>
+  <data name="MQTT broker port must be between 1 and 65535" xml:space="preserve"><value>MQTT 端口必须在 1 到 65535 之间</value></data>
   <data name="ClientId" xml:space="preserve"><value>ClientId</value></data>
   <data name="Topic prefix" xml:space="preserve"><value>主题前缀</value></data>
   <data name="empty = global topic root" xml:space="preserve"><value>空表示使用全局主题根</value></data>

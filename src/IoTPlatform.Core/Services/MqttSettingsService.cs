@@ -258,7 +258,12 @@ public class MqttSettingsService
         if (String.IsNullOrWhiteSpace(broker.Id) || !BrokerIdPattern.IsMatch(broker.Id))
             throw new PlatformException("MQTT broker id '{0}' is invalid", broker.Id ?? "");
         if (MqttBrokerIds.IsEmbedded(broker.Id)) throw new PlatformException("MQTT broker id '{0}' is reserved", broker.Id);
-        if (String.IsNullOrWhiteSpace(broker.Server)) throw new PlatformException("MQTT broker server is required");
+        if (!String.IsNullOrWhiteSpace(broker.Scheme) && !MqttBrokerEndpoint.IsKnown(broker.Scheme))
+            throw new PlatformException("MQTT broker scheme '{0}' is invalid", broker.Scheme);
+        MqttBrokerEndpoint.Apply(broker);
+        if (String.IsNullOrWhiteSpace(broker.Host) || String.IsNullOrWhiteSpace(broker.Server))
+            throw new PlatformException("MQTT broker server is required");
+        if (broker.Port is < 1 or > 65535) throw new PlatformException("MQTT broker port must be between 1 and 65535");
         if (broker.QoS is < 0 or > 1) throw new PlatformException("MQTT QoS must be 0 or 1");
         if (broker.KeepAlive < 5) throw new PlatformException("MQTT keep-alive must be at least 5 seconds");
         if (broker.ReconnectDelay < 1) throw new PlatformException("MQTT reconnect delay must be at least 1 second");
@@ -266,12 +271,19 @@ public class MqttSettingsService
 
     static ExternalMqttOptions ToBroker(MqttBrokerInput input)
     {
+        if (!String.IsNullOrWhiteSpace(input.Scheme) && !MqttBrokerEndpoint.IsKnown(input.Scheme))
+            throw new PlatformException("MQTT broker scheme '{0}' is invalid", input.Scheme);
+
         var id = input.Id?.Trim();
-        return new ExternalMqttOptions
+        var broker = new ExternalMqttOptions
         {
             Id = id,
             Name = String.IsNullOrWhiteSpace(input.Name) ? id : input.Name.Trim(),
             TopicRoot = String.IsNullOrWhiteSpace(input.TopicRoot) ? null : input.TopicRoot.Trim(),
+            Scheme = input.Scheme,
+            Host = input.Host,
+            Port = input.Port,
+            Path = input.Path,
             Server = input.Server?.Trim() ?? "",
             ClientId = String.IsNullOrWhiteSpace(input.ClientId) ? "newlife-iot-platform" : input.ClientId.Trim(),
             UserName = String.IsNullOrWhiteSpace(input.UserName) ? null : input.UserName.Trim(),
@@ -283,6 +295,8 @@ public class MqttSettingsService
             PublicServer = String.IsNullOrWhiteSpace(input.PublicServer) ? null : input.PublicServer.Trim(),
             Enable = input.Enable,
         };
+        MqttBrokerEndpoint.Apply(broker);
+        return broker;
     }
 
     static String RequireId(String? id)

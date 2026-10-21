@@ -1,6 +1,5 @@
 using System.Diagnostics;
-using NewLife;
-using NewLife.MQTT;
+using MQTTnet.Client;
 
 namespace IoTPlatform.Mqtt;
 
@@ -11,45 +10,34 @@ public class MqttConnectionTester
 {
     public async Task<MqttConnectionTestResult> TestAsync(ExternalMqttOptions broker, TimeSpan? timeout = null, CancellationToken cancellationToken = default)
     {
-        var server = broker.Server?.Trim() ?? "";
+        var endpoint = MqttBrokerEndpoint.From(broker);
+        var server = endpoint.Server;
         if (String.IsNullOrEmpty(server))
             return new(false, server, broker.ClientId, "Server is required", 0);
 
-        timeout ??= TimeSpan.FromSeconds(5);
+        timeout ??= TimeSpan.FromSeconds(endpoint.IsWebSocket ? 10 : 5);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(timeout.Value);
         var sw = Stopwatch.StartNew();
+        var clientId = String.IsNullOrWhiteSpace(broker.ClientId) ? $"newlife-iot-test-{Environment.MachineName}" : broker.ClientId;
 
-        var client = new MqttClient
-        {
-            Server = server,
-            ClientId = broker.ClientId.IsNullOrEmpty() ? $"newlife-iot-test-{Environment.MachineName}" : broker.ClientId,
-            UserName = broker.UserName,
-            Password = broker.Password,
-            SslProtocol = broker.UseTls ? System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13 : System.Security.Authentication.SslProtocols.None,
-            KeepAlive = Math.Max(5, broker.KeepAlive),
-            CleanSession = true,
-            Reconnect = false,
-            Log = NewLife.Log.Logger.Null,
-        };
-
+        using var client = ExternalMqttConnector.CreateClient();
         try
         {
-            await client.ConnectAsync(cts.Token);
-            try { await client.DisconnectAsync(CancellationToken.None); } catch { }
-            return new(true, server, client.ClientId, null, (Int32)sw.ElapsedMilliseconds);
+            var options = ExternalMqttConnector.BuildOptions(broker, clientId, timeout);
+            var ack = await client.ConnectAsync(options, cts.Token);
+            try { await client.DisconnectAsync(cancellationToken: CancellationToken.None); } catch { }
+            if (ack.ResultCode != MqttClientConnectResultCode.Success)
+                return new(false, server, clientId, ack.ResultCode.ToString(), (Int32)sw.ElapsedMilliseconds);
+            return new(true, server, clientId, null, (Int32)sw.ElapsedMilliseconds);
         }
         catch (OperationCanceledException)
         {
-            return new(false, server, client.ClientId, cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested ? "Timed out" : "Cancelled", (Int32)sw.ElapsedMilliseconds);
+            return new(false, server, clientId, cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested ? "Timed out" : "Cancelled", (Int32)sw.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            return new(false, server, client.ClientId, ex.Message, (Int32)sw.ElapsedMilliseconds);
-        }
-        finally
-        {
-            client.Dispose();
+            return new(false, server, clientId, ex.Message, (Int32)sw.ElapsedMilliseconds);
         }
     }
 }

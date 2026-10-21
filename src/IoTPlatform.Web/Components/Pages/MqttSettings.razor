@@ -138,7 +138,7 @@
                         <tr>
                             <td class="mono">@b.Id @if (b.Id == DefaultBroker && IsExternal) { <span class="badge">@L["default"]</span> }</td>
                             <td>@(String.IsNullOrEmpty(b.Name) ? b.Id : b.Name)</td>
-                            <td class="mono small">@b.Server @(b.UseTls ? "(TLS)" : "") @if (!String.IsNullOrEmpty(b.Password)) { <span class="muted">· ••••</span> }</td>
+                            <td class="mono small">@b.EffectiveServer @(MqttBrokerEndpoint.From(b).UseTls ? "(TLS)" : "") @if (!String.IsNullOrEmpty(b.Password)) { <span class="muted">· ••••</span> }</td>
                             <td class="hide-sm mono small">@(String.IsNullOrEmpty(b.TopicRoot) ? Options.Value.Mqtt.TopicRoot : b.TopicRoot)</td>
                             <td>
                                 <label class="check">
@@ -211,10 +211,34 @@
             <label>@L["Name"]</label>
             <input class="input" @bind="_broker.Name" placeholder="@L["Local Mosquitto"]" />
         </div>
+        <div class="field">
+            <label>@L["Scheme"]</label>
+            <select class="select" @bind="_broker.Scheme" @bind:after="OnTransportChanged">
+                <option value="@MqttBrokerEndpoint.Tcp">tcp</option>
+                <option value="@MqttBrokerEndpoint.Ssl">ssl</option>
+                <option value="@MqttBrokerEndpoint.Ws">ws</option>
+                <option value="@MqttBrokerEndpoint.Wss">wss</option>
+            </select>
+            <span class="hint">@L["tcp / ssl for MQTT; ws / wss for MQTT over WebSocket."]</span>
+        </div>
+        <div class="field">
+            <label>@L["Host"]</label>
+            <input class="input mono" @bind="_broker.Host" @bind:after="SyncServer" placeholder="mqtt.example.com" />
+        </div>
+        <div class="field">
+            <label>@L["Port"]</label>
+            <input class="input mono" type="number" min="1" max="65535" @bind="_broker.Port" @bind:after="SyncServer" />
+            <span class="hint">@L["Defaults: tcp 1883, ssl 8883, ws 8083, wss 443."]</span>
+        </div>
+        <div class="field">
+            <label>@L["Path"]</label>
+            <input class="input mono" @bind="_broker.Path" @bind:after="SyncServer" placeholder="/mqtt" disabled="@(!MqttBrokerEndpoint.IsWebSocketScheme(_broker.Scheme))" />
+            <span class="hint">@L["Used for ws/wss, for example /mqtt. Empty uses /mqtt."]</span>
+        </div>
         <div class="field full">
             <label>@L["Server"]</label>
-            <input class="input mono" @bind="_broker.Server" placeholder="tcp://127.0.0.1:1883" />
-            <span class="hint">@L["Example: tcp://host:1883. Use port 8883 with TLS enabled."]</span>
+            <input class="input mono" @bind="_broker.Server" @bind:after="OnServerChanged" placeholder="wss://mqtt.example.com:443/mqtt" />
+            <span class="hint">@L["Scheme, host, port and path are composed into this URL. You can also paste a full URL (tcp/ssl/ws/wss)."]</span>
         </div>
         <div class="field">
             <label>@L["ClientId"]</label>
@@ -250,7 +274,8 @@
             <input class="input" type="number" min="1" @bind="_broker.ReconnectDelay" />
         </div>
         <div class="field">
-            <label class="check"><input type="checkbox" @bind="_broker.UseTls" /> @L["Use TLS"]</label>
+            <label class="check"><input type="checkbox" @bind="_broker.UseTls" disabled="@MqttBrokerEndpoint.IsTlsScheme(_broker.Scheme)" /> @L["Use TLS"]</label>
+            <span class="hint">@L["Implied by ssl and wss."]</span>
         </div>
         <div class="field">
             <label class="check"><input type="checkbox" @bind="_broker.Enable" /> @L["Enabled"]</label>
@@ -346,6 +371,7 @@
     {
         _editingId = null;
         _broker = new MqttBrokerInput();
+        SyncServer();
         _brokerHasPassword = false;
         _testMessage = null;
         _showEditor = true;
@@ -353,17 +379,22 @@
 
     private void BeginEdit(ExternalMqttOptions b)
     {
+        var endpoint = MqttBrokerEndpoint.From(b);
         _editingId = b.Id;
         _broker = new MqttBrokerInput
         {
             Id = b.Id,
             Name = b.Name,
             TopicRoot = b.TopicRoot,
-            Server = b.Server,
+            Scheme = endpoint.Scheme,
+            Host = endpoint.Host,
+            Port = endpoint.Port,
+            Path = endpoint.Path,
+            Server = endpoint.Server,
             ClientId = b.ClientId,
             UserName = b.UserName,
             Password = "",
-            UseTls = b.UseTls,
+            UseTls = endpoint.UseTls,
             QoS = b.QoS,
             KeepAlive = b.KeepAlive,
             ReconnectDelay = b.ReconnectDelay,
@@ -373,6 +404,43 @@
         _brokerHasPassword = Settings.BrokerHasPassword(b.Id);
         _testMessage = null;
         _showEditor = true;
+    }
+
+    private void OnTransportChanged()
+    {
+        var scheme = _broker.Scheme;
+        if (_broker.Port is 0 or 1883 or 8883 or 8083 or 443)
+            _broker.Port = MqttBrokerEndpoint.DefaultPort(scheme);
+        if (!MqttBrokerEndpoint.IsWebSocketScheme(scheme))
+            _broker.Path = "";
+        else if (String.IsNullOrWhiteSpace(_broker.Path))
+            _broker.Path = MqttBrokerEndpoint.DefaultPath(scheme);
+        _broker.UseTls = MqttBrokerEndpoint.IsTlsScheme(scheme) || _broker.UseTls && scheme == MqttBrokerEndpoint.Tcp;
+        SyncServer();
+    }
+
+    private void SyncServer()
+    {
+        _broker.Server = MqttBrokerEndpoint.Build(_broker.Scheme, _broker.Host, _broker.Port, _broker.Path);
+        _broker.UseTls = MqttBrokerEndpoint.IsTlsScheme(_broker.Scheme);
+    }
+
+    private void OnServerChanged()
+    {
+        if (String.IsNullOrWhiteSpace(_broker.Server)) return;
+        try
+        {
+            var endpoint = MqttBrokerEndpoint.Parse(_broker.Server, _broker.UseTls);
+            _broker.Scheme = endpoint.Scheme;
+            _broker.Host = endpoint.Host;
+            _broker.Port = endpoint.Port;
+            _broker.Path = endpoint.Path;
+            _broker.UseTls = endpoint.UseTls;
+            _broker.Server = endpoint.Server;
+        }
+        catch (PlatformException)
+        {
+        }
     }
 
     private async Task SaveBroker()
@@ -408,13 +476,18 @@
 
     private async Task TestExisting(ExternalMqttOptions b)
     {
+        var endpoint = MqttBrokerEndpoint.From(b);
         await TestCore(new MqttBrokerInput
         {
             Id = b.Id,
-            Server = b.Server,
+            Scheme = endpoint.Scheme,
+            Host = endpoint.Host,
+            Port = endpoint.Port,
+            Path = endpoint.Path,
+            Server = endpoint.Server,
             ClientId = b.ClientId,
             UserName = b.UserName,
-            UseTls = b.UseTls,
+            UseTls = endpoint.UseTls,
             KeepAlive = b.KeepAlive,
         });
     }

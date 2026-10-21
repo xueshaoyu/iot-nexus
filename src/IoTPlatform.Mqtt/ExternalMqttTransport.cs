@@ -4,10 +4,10 @@ using IoTPlatform.Protocols;
 using IoTPlatform.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using MQTTnet;
+using MQTTnet.Client;
 using NewLife;
-using NewLife.Data;
 using NewLife.Log;
-using NewLife.MQTT;
 using NewLife.MQTT.Messaging;
 
 namespace IoTPlatform.Mqtt;
@@ -122,7 +122,7 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
                 var session = new Session(profile.Id!, profile, router, catalog);
                 if (_sessions.TryAdd(profile.Id!, session))
                 {
-                    XTrace.WriteLine("外部 MQTT：连接服务器 {0}（{1}）{2}", profile.Id, profile.Name ?? "-", profile.Server);
+                    XTrace.WriteLine("外部 MQTT：连接服务器 {0}（{1}）{2}", profile.Id, profile.Name ?? "-", profile.EffectiveServer);
                     session.Start();
                 }
             }
@@ -146,8 +146,8 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
         var id = catalog.ResolveId(brokerId);
         var snap = GetSnapshot(id);
         var profile = options.Value.Mqtt.FindBroker(id);
-        var server = snap?.Server ?? profile?.Server ?? "";
-        var port = snap?.Port ?? (Uri.TryCreate(server, UriKind.Absolute, out var uri) && uri.Port > 0 ? uri.Port : 1883);
+        var server = snap?.Server ?? profile?.EffectiveServer ?? "";
+        var port = snap?.Port ?? (profile == null ? 1883 : MqttBrokerEndpoint.From(profile).Port);
         var error = snap?.LastError ?? (profile == null ? $"Broker '{id}' is not defined in IoT:Mqtt:Brokers" : null);
 
         return new MqttStatus(
@@ -183,7 +183,7 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
 
         private CancellationTokenSource? _cts;
         private Task? _loop;
-        private MqttClient? _client;
+        private IMqttClient? _client;
         private DateTime _connectedAt;
         private Int64 _received;
         private Int64 _sent;
@@ -216,28 +216,24 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
             var s = settings!;
             while (!token.IsCancellationRequested)
             {
-                var client = new MqttClient
-                {
-                    Server = s.Server,
-                    ClientId = s.ClientId.IsNullOrEmpty() ? $"newlife-iot-{id}-{Environment.MachineName}" : s.ClientId,
-                    UserName = s.UserName,
-                    Password = s.Password,
-                    SslProtocol = s.UseTls ? System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13 : System.Security.Authentication.SslProtocols.None,
-                    KeepAlive = Math.Max(5, s.KeepAlive),
-                    CleanSession = true,
-                    Reconnect = false,
-                    Log = Logger.Null,
-                };
-                client.Received += OnReceived;
+                var endpoint = MqttBrokerEndpoint.From(s);
+                var clientId = s.ClientId.IsNullOrEmpty() ? $"newlife-iot-{id}-{Environment.MachineName}" : s.ClientId;
+                var client = ExternalMqttConnector.CreateClient();
+                client.ApplicationMessageReceivedAsync += OnReceivedAsync;
 
                 try
                 {
-                    await client.ConnectAsync(token);
+                    var options = ExternalMqttConnector.BuildOptions(s, clientId);
+                    var ack = await client.ConnectAsync(options, token);
+                    if (ack.ResultCode != MqttClientConnectResultCode.Success)
+                        throw new InvalidOperationException(ack.ResultCode.ToString());
 
-                    var qos = s.QoS <= 0 ? QualityOfService.AtMostOnce : QualityOfService.AtLeastOnce;
+                    var qos = ExternalMqttConnector.ToQos(s.QoS);
                     var root = catalog.TopicRoot(id);
                     var filters = Topics.UplinkFilters(root).Concat(AlinkTopics.UplinkFilters()).ToArray();
-                    await client.SubscribeAsync(filters, qos, token);
+                    var subscribe = new MqttClientSubscribeOptionsBuilder();
+                    foreach (var filter in filters) subscribe.WithTopicFilter(filter, qos);
+                    await client.SubscribeAsync(subscribe.Build(), token);
 
                     _subscriptions.Clear();
                     foreach (var f in filters) _subscriptions[f] = 1;
@@ -245,7 +241,7 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
                     _connectedAt = DateTime.Now;
                     _lastError = null;
                     Interlocked.Increment(ref _connections);
-                    XTrace.WriteLine("已连接外部 MQTT 服务器 {0}（{1} ClientId={2}），订阅 {3}", id, s.Server, client.ClientId, String.Join(" ", filters));
+                    XTrace.WriteLine("已连接外部 MQTT 服务器 {0}（{1} ClientId={2}），订阅 {3}", id, endpoint.Server, clientId, String.Join(" ", filters));
 
                     while (!token.IsCancellationRequested && client.IsConnected) await Task.Delay(1000, token);
                     if (!token.IsCancellationRequested) _lastError = "Connection lost";
@@ -256,14 +252,14 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
                 catch (Exception ex)
                 {
                     _lastError = ex.Message;
-                    XTrace.WriteLine("连接外部 MQTT 服务器 {0}（{1}）失败：{2}", id, s.Server, ex.Message);
+                    XTrace.WriteLine("连接外部 MQTT 服务器 {0}（{1}）失败：{2}", id, endpoint.Server, ex.Message);
                 }
                 finally
                 {
                     _client = null;
                     _subscriptions.Clear();
-                    client.Received -= OnReceived;
-                    try { if (client.IsConnected) await client.DisconnectAsync(CancellationToken.None); } catch { }
+                    client.ApplicationMessageReceivedAsync -= OnReceivedAsync;
+                    try { if (client.IsConnected) await client.DisconnectAsync(cancellationToken: CancellationToken.None); } catch { }
                     client.Dispose();
                 }
 
@@ -272,16 +268,18 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
             }
         }
 
-        private void OnReceived(Object? sender, NewLife.EventArgs<PublishMessage> e)
+        private Task OnReceivedAsync(MqttApplicationMessageReceivedEventArgs e)
         {
-            var msg = e.Arg;
-            if (msg?.Topic == null) return;
+            var msg = e.ApplicationMessage;
+            if (msg?.Topic == null) return Task.CompletedTask;
 
             Interlocked.Increment(ref _received);
             var root = catalog.TopicRoot(id);
-            var result = router.Handle(msg.Topic, msg.Payload?.ReadBytes() ?? [], new MqttUplinkContext(null, $"{SessionIdPrefix}:{id}", settings?.ClientId, null, id, root));
+            var payload = msg.PayloadSegment.Count == 0 ? [] : msg.PayloadSegment.ToArray();
+            var result = router.Handle(msg.Topic, payload, new MqttUplinkContext(null, $"{SessionIdPrefix}:{id}", settings?.ClientId, null, id, root));
             if (result.ReplyTopic != null && result.ReplyPayload != null)
                 _ = PublishAsync(result.ReplyTopic, result.ReplyPayload, QualityOfService.AtMostOnce, false, CancellationToken.None);
+            return Task.CompletedTask;
         }
 
         public async Task<Boolean> PublishAsync(String topic, Byte[] payload, QualityOfService qos, Boolean retain, CancellationToken cancellationToken)
@@ -291,7 +289,13 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
 
             try
             {
-                await client.PublishAsync(new PublishMessage { Topic = topic, Payload = new ArrayPacket(payload), QoS = qos, Retain = retain }, cancellationToken);
+                var message = new MqttApplicationMessageBuilder()
+                    .WithTopic(topic)
+                    .WithPayload(payload)
+                    .WithQualityOfServiceLevel(ExternalMqttConnector.ToQos(qos))
+                    .WithRetainFlag(retain)
+                    .Build();
+                await client.PublishAsync(message, cancellationToken);
                 Interlocked.Increment(ref _sent);
                 return true;
             }
@@ -304,8 +308,9 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
 
         public ExternalBrokerSessionStatus Snapshot()
         {
-            var server = settings?.Server ?? "";
-            var port = Uri.TryCreate(server, UriKind.Absolute, out var uri) && uri.Port > 0 ? uri.Port : 1883;
+            var endpoint = settings == null ? default : MqttBrokerEndpoint.From(settings);
+            var server = settings == null ? "" : endpoint.Server;
+            var port = settings == null ? 1883 : endpoint.Port;
             return new ExternalBrokerSessionStatus(
                 id,
                 IsReady,
