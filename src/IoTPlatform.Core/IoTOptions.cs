@@ -77,7 +77,7 @@ public class MqttOptions
     /// <summary>当前选用的外部服务器：按 ActiveBroker 匹配 Id 或名称，未设置时取第一个；找不到返回 null（不会回退到其它服务器）</summary>
     public ExternalMqttOptions? GetActiveBroker()
     {
-        var brokers = GetBrokers();
+        var brokers = GetBrokers().Where(e => e.Enable).ToList();
         if (String.IsNullOrWhiteSpace(ActiveBroker)) return brokers.FirstOrDefault();
 
         var key = ActiveBroker.Trim();
@@ -92,7 +92,9 @@ public class MqttOptions
         {
             var active = GetActiveBroker();
             if (active != null) return active.Id!;
-            return String.IsNullOrWhiteSpace(ActiveBroker) ? GetBrokers().FirstOrDefault()?.Id ?? MqttBrokerIds.Embedded : ActiveBroker.Trim();
+            return String.IsNullOrWhiteSpace(ActiveBroker)
+                ? GetBrokers().FirstOrDefault(e => e.Enable)?.Id ?? MqttBrokerIds.Embedded
+                : ActiveBroker.Trim();
         }
 
         return MqttBrokerIds.Embedded;
@@ -153,8 +155,23 @@ public class ExternalMqttOptions
     /// <summary>主题根覆盖（可选），空表示使用全局 IoT:Mqtt:TopicRoot</summary>
     public String? TopicRoot { get; set; }
 
-    /// <summary>服务器地址，如 tcp://127.0.0.1:1883、tcp://emqx.example.com:8883</summary>
+    /// <summary>传输：tcp / ssl / ws / wss。空则从 <see cref="Server"/> 解析</summary>
+    public String? Scheme { get; set; }
+
+    /// <summary>主机名或 IP。空则从 <see cref="Server"/> 解析</summary>
+    public String? Host { get; set; }
+
+    /// <summary>端口。0 表示按 scheme 使用默认端口（tcp 1883、ssl 8883、ws 8083、wss 443）</summary>
+    public Int32 Port { get; set; }
+
+    /// <summary>WebSocket 路径，如 /mqtt。tcp/ssl 忽略；ws/wss 为空时默认 /mqtt</summary>
+    public String? Path { get; set; }
+
+    /// <summary>服务器地址，如 tcp://127.0.0.1:1883、wss://mqtt.example.com:443/mqtt</summary>
     public String Server { get; set; } = "tcp://127.0.0.1:1883";
+
+    /// <summary>合成后的 NewLife.MQTT Server URL（含 scheme、端口与 WebSocket 路径）</summary>
+    public String EffectiveServer => MqttBrokerEndpoint.From(this).Server;
 
     /// <summary>平台客户端 ClientId，同一服务器上需唯一</summary>
     public String ClientId { get; set; } = "newlife-iot-platform";
@@ -163,7 +180,7 @@ public class ExternalMqttOptions
 
     public String? Password { get; set; }
 
-    /// <summary>使用 TLS</summary>
+    /// <summary>使用 TLS。ssl/wss 时自动为 true</summary>
     public Boolean UseTls { get; set; }
 
     /// <summary>订阅与下行发布使用的 QoS（0/1）</summary>
@@ -177,6 +194,9 @@ public class ExternalMqttOptions
 
     /// <summary>展示给设备的接入地址（界面接入信息），空表示与 Server 相同</summary>
     public String? PublicServer { get; set; }
+
+    /// <summary>是否启用。关闭后不作为平台默认，也不再为该配置建立平台客户端连接</summary>
+    public Boolean Enable { get; set; } = true;
 }
 
 /// <summary>演示配置</summary>

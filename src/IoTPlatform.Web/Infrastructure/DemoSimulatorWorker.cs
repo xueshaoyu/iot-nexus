@@ -94,7 +94,8 @@ public class DemoSimulatorWorker(IOptions<IoTOptions> options, IServer server, I
         var profile = mqtt.FindBroker(brokerId);
         if (profile == null) return (null, catalog.TopicRoot(brokerId), false);
 
-        return (profile.Server, catalog.TopicRoot(brokerId), profile.UseTls);
+        var endpoint = MqttBrokerEndpoint.From(profile);
+        return (endpoint.Server, catalog.TopicRoot(brokerId), endpoint.UseTls);
     }
 
     private IEnumerable<(DeviceProfile Profile, String BrokerId)> Profiles(String productCode, String kind)

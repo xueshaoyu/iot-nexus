@@ -1,4 +1,5 @@
 # Default: Embedded MQTT + admin UI. No extra broker required.
+# Image 1.0.4 (linux/amd64, non-root uid 1654). MQTT UI settings persist in iot-data:/app/Data/Config/mqtt-ui.json.
 #   docker compose up --build
 # Production-style (empty platform, no simulator):
 #   IoT__Demo__SeedData=false IoT__Demo__EnableSimulator=false \
@@ -13,7 +14,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: newlife-iot-platform:latest
+    image: newlife-iot-platform:1.0.4
     ports:
       - "5288:5288"   # admin UI + REST / Swagger
       - "1883:1883"   # Embedded MQTT (TCP + WebSocket /mqtt)

@@ -5,6 +5,7 @@
     <PackageVersion Include="NewLife.XCode" Version="12.2.2026.901" />
     <PackageVersion Include="NewLife.IoT" Version="3.1.2026.801" />
     <PackageVersion Include="NewLife.MQTT" Version="3.2.2026.801" />
+    <PackageVersion Include="MQTTnet" Version="4.3.7.1207" />
     <PackageVersion Include="NewLife.Modbus" Version="2.1.2026.901" />
     <!-- ADO.NET provider used by XCode for SQLite -->
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="8.0.11" />

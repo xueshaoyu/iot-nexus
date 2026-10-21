@@ -59,7 +59,7 @@
                                 <tr>
                                     <td class="mono">@b.Id @if (b.Id == DefaultBroker) { <span class="badge">@L["default"]</span> }</td>
                                     <td>@(b.Kind == MqttModes.Embedded ? L["Embedded (built-in)"] : b.Name)</td>
-                                    <td class="mono small">@b.Server @(profile?.UseTls == true ? "(TLS)" : "") @if (profile != null && !profile.Password.IsNullOrEmpty()) { <span class="muted">· ••••</span> }</td>
+                                    <td class="mono small">@(profile?.EffectiveServer ?? b.Server) @(profile != null && MqttBrokerEndpoint.From(profile).UseTls ? "(TLS)" : "") @if (profile != null && !profile.Password.IsNullOrEmpty()) { <span class="muted">· ••••</span> }</td>
                                     <td class="hide-sm mono small">@b.TopicRoot</td>
                                     <td>@b.DeviceCount</td>
                                     <td class="nowrap">
@@ -85,7 +85,7 @@
                         </tbody>
                     </table>
                 </div>
-                <p class="hint small" style="margin:8px 0 0">@L["Broker profiles are configured in IoT:Mqtt:Brokers. Passwords are never shown. Device assignment is edited on the product or device page."]</p>
+                <p class="hint small" style="margin:8px 0 0">@L["Broker profiles are edited on MQTT configuration. Passwords are never shown. Device assignment is edited on the product or device page."] <a href="settings/mqtt">@L["MQTT configuration"]</a></p>
             </div>
         </div>
         <div class="grid grid-2">

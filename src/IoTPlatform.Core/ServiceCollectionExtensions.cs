@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
 
         services.TryAddSingleton<MessageCounter>();
         services.TryAddSingleton<MqttBrokerCatalog>();
+        services.TryAddSingleton<MqttSettingsStore>();
+        services.TryAddSingleton<MqttSettingsService>();
         services.TryAddSingleton<ProductService>();
         services.TryAddSingleton<DeviceGroupService>();
         services.TryAddSingleton<DeviceService>();
