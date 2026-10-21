@@ -39,6 +39,10 @@ public class MqttBrokerInput
     public String? Id { get; set; }
     public String? Name { get; set; }
     public String? TopicRoot { get; set; }
+    public String? Scheme { get; set; } = MqttBrokerEndpoint.Tcp;
+    public String? Host { get; set; } = "127.0.0.1";
+    public Int32 Port { get; set; } = 1883;
+    public String? Path { get; set; }
     public String Server { get; set; } = "tcp://127.0.0.1:1883";
     public String ClientId { get; set; } = "newlife-iot-platform";
     public String? UserName { get; set; }

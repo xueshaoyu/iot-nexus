@@ -52,7 +52,7 @@ public class ConnectionInfoService(IOptions<IoTOptions> options, MqttBrokerCatal
             else
             {
                 var profile = mqtt.FindBroker(brokerId);
-                mqttServer = profile == null ? "—" : profile.PublicServer.IsNullOrEmpty() ? profile.Server : profile.PublicServer;
+                mqttServer = profile == null ? "—" : profile.PublicServer.IsNullOrEmpty() ? profile.EffectiveServer : profile.PublicServer;
             }
         }
 

@@ -127,6 +127,24 @@ public class MqttSettingsTests
     }
 
     [Fact]
+    public void Store_UsesNewLifeDataPathEnv()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"mqtt-data-{Guid.NewGuid():N}");
+        var previous = Environment.GetEnvironmentVariable("NEWLIFE_DATAPATH");
+        try
+        {
+            Environment.SetEnvironmentVariable("NEWLIFE_DATAPATH", dir);
+            var store = new MqttSettingsStore();
+            Assert.Equal(Path.GetFullPath(Path.Combine(dir, "Config", "mqtt-ui.json")), store.FilePath);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("NEWLIFE_DATAPATH", previous);
+            try { Directory.Delete(dir, true); } catch { }
+        }
+    }
+
+    [Fact]
     public async Task StoreAndService_SaveThenReload_EnvWins()
     {
         var dir = Path.Combine(Path.GetTempPath(), $"mqtt-ui-{Guid.NewGuid():N}");
@@ -223,12 +241,117 @@ public class MqttSettingsTests
     }
 
     [Fact]
+    public void Connector_BuildsWssWebSocketOptions()
+    {
+        var options = IoTPlatform.Mqtt.ExternalMqttConnector.BuildOptions(new ExternalMqttOptions
+        {
+            Scheme = "wss",
+            Host = "mqtt.example.com",
+            Port = 443,
+            Path = "/mqtt",
+            ClientId = "probe",
+            UserName = "u",
+            KeepAlive = 20,
+        });
+
+        Assert.Equal("probe", options.ClientId);
+        var channel = Assert.IsType<MQTTnet.Client.MqttClientWebSocketOptions>(options.ChannelOptions);
+        Assert.Equal("wss://mqtt.example.com:443/mqtt", channel.Uri);
+        Assert.NotNull(options.ChannelOptions.TlsOptions);
+        Assert.True(options.ChannelOptions.TlsOptions!.UseTls);
+    }
+
+    [Fact]
     public async Task Tester_RejectsEmptyServer()
     {
         var tester = new IoTPlatform.Mqtt.MqttConnectionTester();
         var result = await tester.TestAsync(new ExternalMqttOptions { Server = "" });
         Assert.False(result.Ok);
         Assert.Equal("Server is required", result.Error);
+    }
+
+    [Fact]
+    public void Endpoint_ParsesWssAndRepairsTypo()
+    {
+        var typed = MqttBrokerEndpoint.Parse("wss:/mqtt.example.com");
+        Assert.Equal(("wss", "mqtt.example.com", 443, "/", true, "wss://mqtt.example.com:443/"),
+            (typed.Scheme, typed.Host, typed.Port, typed.Path, typed.UseTls, typed.Server));
+
+        var withPath = MqttBrokerEndpoint.Parse("wss://mqtt.example.com:443/mqtt");
+        Assert.Equal(("wss", "mqtt.example.com", 443, "/mqtt", "wss://mqtt.example.com:443/mqtt"),
+            (withPath.Scheme, withPath.Host, withPath.Port, withPath.Path, withPath.Server));
+
+        var root = MqttBrokerEndpoint.Parse("wss://mqtt.example.com/");
+        Assert.Equal("/", root.Path);
+
+        var ws = MqttBrokerEndpoint.Parse("ws://broker.local:8083/ws");
+        Assert.Equal(("ws", 8083, "/ws", false), (ws.Scheme, ws.Port, ws.Path, ws.UseTls));
+
+        var mqtts = MqttBrokerEndpoint.Parse("mqtts://emqx.example.com");
+        Assert.Equal(("ssl", "emqx.example.com", 8883, "", true, "ssl://emqx.example.com:8883"),
+            (mqtts.Scheme, mqtts.Host, mqtts.Port, mqtts.Path, mqtts.UseTls, mqtts.Server));
+
+        var tcp = MqttBrokerEndpoint.Parse("127.0.0.1:1884");
+        Assert.Equal(("tcp", "127.0.0.1", 1884, "", false), (tcp.Scheme, tcp.Host, tcp.Port, tcp.Path, tcp.UseTls));
+    }
+
+    [Fact]
+    public void Endpoint_StructuredFieldsComposeServer_AndTcpPlusTlsBecomesSsl()
+    {
+        var wss = new ExternalMqttOptions
+        {
+            Scheme = "wss",
+            Host = "mqtt.example.com",
+            Port = 443,
+            Path = "/mqtt",
+        };
+        MqttBrokerEndpoint.Apply(wss);
+        Assert.Equal("wss://mqtt.example.com:443/mqtt", wss.Server);
+        Assert.True(wss.UseTls);
+        Assert.Equal("/mqtt", wss.Path);
+
+        var promoted = new ExternalMqttOptions { Server = "tcp://emqx.example.com:8883", UseTls = true };
+        MqttBrokerEndpoint.Apply(promoted);
+        Assert.Equal("ssl", promoted.Scheme);
+        Assert.Equal("ssl://emqx.example.com:8883", promoted.Server);
+        Assert.True(promoted.UseTls);
+    }
+
+    [Fact]
+    public async Task Service_UpsertBroker_ComposesWssPath()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"mqtt-ui-{Guid.NewGuid():N}");
+        var live = new IoTOptions { Mqtt = new MqttOptions { Brokers = [] } };
+        var service = new MqttSettingsService(Options.Create(live), new MqttSettingsStore(dir), new HashSet<String>());
+
+        await service.UpsertBrokerAsync(new MqttBrokerInput
+        {
+            Id = "cloud",
+            Name = "Cloud WSS",
+            Scheme = "wss",
+            Host = "mqtt.example.com",
+            Port = 443,
+            Path = "/mqtt",
+            UserName = "platform",
+            Enable = true,
+        });
+
+        var saved = live.Mqtt.FindBroker("cloud")!;
+        Assert.Equal("wss://mqtt.example.com:443/mqtt", saved.Server);
+        Assert.Equal("wss", saved.Scheme);
+        Assert.Equal("/mqtt", saved.Path);
+        Assert.True(saved.UseTls);
+
+        var ex = await Assert.ThrowsAsync<PlatformException>(() => service.UpsertBrokerAsync(new MqttBrokerInput
+        {
+            Id = "bad",
+            Scheme = "quic",
+            Host = "x",
+            Server = "quic://x",
+        }));
+        Assert.Equal("MQTT broker scheme '{0}' is invalid", ex.Template);
+
+        try { Directory.Delete(dir, true); } catch { }
     }
 
     sealed class RecordingRuntime : IMqttRuntimeControl

@@ -119,12 +119,12 @@ iot/{productKey}/{deviceName}/service/invoke      # 下行
 
 ### MQTT 配置（管理界面）
 
-侧栏 **系统 → MQTT 配置**（`/settings/mqtt`）可查看和修改内置 Broker（启用、端口、匿名、管理账号/密码）以及外部 MQTT 服务器（增删改、启用/禁用、测试连接），并显示内置客户端数和每台外部服务器的连接状态。密码只写不读，页面上显示为 `••••`。整个管理界面按管理员使用设计，没有单独的登录页；生产环境请把 UI 放在 SSO / 反代认证之后，并为 `/api` 设置 `IoT:ApiKey`。
+侧栏 **系统 → MQTT 配置**（`/settings/mqtt`）可查看和修改内置 Broker（启用、端口、匿名、管理账号/密码）以及外部 MQTT 服务器（增删改、启用/禁用、测试连接），并显示内置客户端数和每台外部服务器的连接状态。外部服务器可分别填写传输协议（tcp / ssl / ws / wss）、主机、端口和 WebSocket 路径（如 `/mqtt`），也可粘贴完整 URL。密码只写不读，页面上显示为 `••••`。整个管理界面按管理员使用设计，没有单独的登录页；生产环境请把 UI 放在 SSO / 反代认证之后，并为 `/api` 设置 `IoT:ApiKey`。
 
 优先级（页面上有说明）：
 
 1. 环境变量 `IoT__Mqtt__*`（或 `IoT:Mqtt:*`）——锁定对应字段，界面只读。设置了 `IoT__Mqtt__Brokers__*` 或 `IoT__Mqtt__External__*` 时，整个外部服务器列表只读。
-2. 界面保存的 `{DataPath}/Config/mqtt-ui.json`（Docker 中即 `/app/Data/Config/mqtt-ui.json`）。
+2. 界面保存的 `{DataPath}/Config/mqtt-ui.json`。Docker 里 `NEWLIFE_DATAPATH=/app/Data`，文件落在 **`/app/Data/Config/mqtt-ui.json`**，和 SQLite 一起在 Compose 的 `iot-data` 卷上，重建或换成 `1.0.4` 镜像不会丢。
 3. `appsettings.json` 默认值。
 
 保存空密码表示保持原密码。修改启用状态、端口、模式或管理端口会立即热重启内置 Broker（已连接设备会短暂断开）；管理账号/密码和外部服务器变更立即生效，外部连接按配置指纹重连。
@@ -198,11 +198,11 @@ docker compose up --build
 | REST API (Swagger) | http://localhost:5288/swagger |
 | MQTT (Embedded) | `tcp://localhost:1883` and `ws://localhost:1883/mqtt` |
 
-SQLite lives in the `iot-data` **named volume** at `/app/Data/iot.db`. NewLife logs go to `iot-logs` (`/app/Log`). First start seeds the same demo products and in-process simulator as `dotnet run`.
+SQLite lives in the `iot-data` **named volume** at `/app/Data/iot.db`. MQTT UI settings (`mqtt-ui.json`) are stored next to it at **`/app/Data/Config/mqtt-ui.json`**, so they survive image rebuilds as long as the volume is kept. NewLife logs go to `iot-logs` (`/app/Log`). First start seeds the same demo products and in-process simulator as `dotnet run`.
 
 **Do not bind-mount a host folder over `/app/Data` on Docker Desktop for Windows or macOS.** Those bind mounts go through a VM file-sharing layer (osxfs / virtiofs / WSL2 9p) that is slow for SQLite and routinely produces `SQLite Error 5: database is locked` plus 慢SQL of several seconds. Use the Compose named volume (`iot-data`) instead. Bind-mounting a Linux host directory is fine.
 
-Image `1.0.3` turns on WAL (`journal_mode=WAL`), `synchronous=NORMAL`, and a 30s busy timeout on the Microsoft.Data.Sqlite connection (`Cache=Shared;Default Timeout=30`), and batches the hot device/property/group/history writes through XCode `SaveAsync`.
+Image `1.0.4` (same SQLite settings as `1.0.3`) turns on WAL (`journal_mode=WAL`), `synchronous=NORMAL`, and a 30s busy timeout on the Microsoft.Data.Sqlite connection (`Cache=Shared;Default Timeout=30`), and batches the hot device/property/group/history writes through XCode `SaveAsync`. It also includes the admin **MQTT 配置** page. Compose uses `image: newlife-iot-platform:1.0.4`.
 
 ```bash
 curl -fsS http://localhost:5288/health
@@ -229,15 +229,15 @@ The `linux/amd64` image is in the repo under [`dist/docker/`](dist/docker/) as 4
 dist\docker\load-image.cmd
 ```
 
-That joins the parts, checks SHA-256 `39792b9a06d0b845c84cf1aa726a9ddc40f602bec3345715849d9dc0c7bacd90`, and runs `docker load`. Then:
+`dist/docker/load-image.sh` still joins the in-repo **1.0.3** 40 MB parts (SHA-256 `39792b9a06d0b845c84cf1aa726a9ddc40f602bec3345715849d9dc0c7bacd90`). Image **1.0.4** is the current release (`linux/amd64`, also tagged `:latest`); its archive SHA-256 is `a96a57f7c482ba186685de107d863008ab7f4fdb4a2162ea68d0d548b0998f5a`. The 1.0.4 `.tar.gz` is not stored in git (too large); use the 8 MB `newlife-iot-platform-1.0.4.tar.gz.part-*` artifacts plus `SHA256SUMS`.
 
 ```bash
 docker run --rm -p 5288:5288 -p 1883:1883 \
   -v iot-data:/app/Data -v iot-logs:/app/Log \
-  newlife-iot-platform:1.0.3
+  newlife-iot-platform:1.0.4
 ```
 
-Or skip `--build` — Compose already uses `image: newlife-iot-platform:latest`:
+Or skip `--build` — Compose uses `image: newlife-iot-platform:1.0.4`:
 
 ```bash
 docker compose up
@@ -578,7 +578,7 @@ Uplink is accepted only on the broker the device is assigned to (the device must
 
 `ActiveBroker` is only the **platform default** when `Mode=External` and the device/product leave the broker unset. An unknown `ActiveBroker` does not fall back to another profile.
 
-The admin page **系统 → MQTT 配置** (`/settings/mqtt`) edits the same settings and persists them to `{DataPath}/Config/mqtt-ui.json`. Precedence is **environment variables `IoT__Mqtt__*` > UI file > `appsettings.json`**. A field set in the environment is shown as read-only. Empty password inputs keep the previously stored secret; passwords are never returned by `GET /api/settings/mqtt` or `GET /api/protocols/mqtt/config`.
+The admin page **系统 → MQTT 配置** (`/settings/mqtt`) edits the same settings and persists them to `{DataPath}/Config/mqtt-ui.json` (Docker: `/app/Data/Config/mqtt-ui.json` on the `iot-data` volume, so a rebuild keeps them). Precedence is **environment variables `IoT__Mqtt__*` > UI file > `appsettings.json`**. A field set in the environment is shown as read-only. Empty password inputs keep the previously stored secret; passwords are never returned by `GET /api/settings/mqtt` or `GET /api/protocols/mqtt/config`.
 
 Changing Enable, Port, Mode or ManagementPort **restarts the built-in broker immediately** (connected devices drop briefly). Admin user/password and external-server add/edit/enable/disable apply immediately; the platform client reconnects when the profile fingerprint changes. Assigning a device or product to a profile that is not yet connected is picked up within about 15 seconds.
 
@@ -587,9 +587,10 @@ Each profile supports these settings:
 | Key | Meaning |
 |---|---|
 | `Id`, `Name` | Selection key and display name. A missing `Id` becomes `broker-1`, `broker-2`, … |
-| `Server` | e.g. `tcp://host:1883`. Use `tcp://host:8883` with `UseTls: true` for TLS. |
+| `Server` | Composed URL, e.g. `tcp://host:1883`, `ssl://host:8883`, `ws://host:8083/mqtt`, `wss://host:443/mqtt`. |
+| `Scheme`, `Host`, `Port`, `Path` | First-class transport fields. `tcp` / `ssl` / `ws` / `wss` (aliases: `mqtt`, `mqtts`, `http`, `https`). Port `0` uses the scheme default (1883 / 8883 / 8083 / 443). `Path` is the WebSocket path (`/mqtt` when empty). A pasted `wss:/host` typo is repaired to `wss://host`. External clients use MQTTnet so `wss` works through TLS terminators such as Cloudflare (NewLife.MQTT’s WSS handshake can hang there). |
 | `ClientId`, `UserName`, `Password` | The platform's own MQTT credentials on that broker. |
-| `UseTls`, `QoS` (0/1), `KeepAlive`, `ReconnectDelay` | Connection behaviour. The client reconnects automatically. |
+| `UseTls`, `QoS` (0/1), `KeepAlive`, `ReconnectDelay` | Connection behaviour. `ssl` / `wss` imply TLS. The client reconnects automatically. |
 | `PublicServer` | Broker address shown to devices on the device connection page, if different from `Server`. |
 | `Enable` | When `false`, the profile is not the platform default and the platform does not open a client to it. Device assignments are kept. |
 | `TopicRoot` | Optional per-broker override of the global `IoT:Mqtt:TopicRoot`, e.g. `tenant-a/iot` on a shared broker. |

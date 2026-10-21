@@ -3,6 +3,7 @@
 
   <ItemGroup>
     <PackageReference Include="NewLife.MQTT" />
+    <PackageReference Include="MQTTnet" />
   </ItemGroup>
 
   <ItemGroup>

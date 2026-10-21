@@ -83,6 +83,10 @@ public static class MqttSettingsMerger
         Id = src.Id,
         Name = src.Name,
         TopicRoot = src.TopicRoot,
+        Scheme = src.Scheme,
+        Host = src.Host,
+        Port = src.Port,
+        Path = src.Path,
         Server = src.Server,
         ClientId = src.ClientId,
         UserName = src.UserName,
@@ -111,8 +115,11 @@ public static class MqttSettingsMerger
         dest.ManagementPort = src.ManagementPort;
     }
 
-    public static String Fingerprint(ExternalMqttOptions src) =>
-        String.Join('|', src.Id, src.Server, src.ClientId, src.UserName, src.Password, src.UseTls, src.QoS, src.KeepAlive, src.ReconnectDelay, src.TopicRoot, src.Enable);
+    public static String Fingerprint(ExternalMqttOptions src)
+    {
+        var endpoint = MqttBrokerEndpoint.From(src);
+        return String.Join('|', src.Id, endpoint.Server, src.ClientId, src.UserName, src.Password, endpoint.UseTls, src.QoS, src.KeepAlive, src.ReconnectDelay, src.TopicRoot, src.Enable);
+    }
 
     static void Apply<T>(ISet<String> locks, String field, T? value, Action<T> assign) where T : struct
     {
