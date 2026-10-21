@@ -71,6 +71,7 @@ services.AddRazorComponents().AddInteractiveServerComponents();
 
 var app = builder.Build();
 Fmt.Localizer = app.Services.GetRequiredService<IStringLocalizer<SharedResource>>();
+app.Services.GetRequiredService<MqttSettingsService>().ApplyAtStartup();
 
 // 初始化：清理上次运行残留的在线状态，写入演示数据
 using (var scope = app.Services.CreateScope())

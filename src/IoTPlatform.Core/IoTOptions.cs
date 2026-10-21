@@ -77,7 +77,7 @@ public class MqttOptions
     /// <summary>当前选用的外部服务器：按 ActiveBroker 匹配 Id 或名称，未设置时取第一个；找不到返回 null（不会回退到其它服务器）</summary>
     public ExternalMqttOptions? GetActiveBroker()
     {
-        var brokers = GetBrokers();
+        var brokers = GetBrokers().Where(e => e.Enable).ToList();
         if (String.IsNullOrWhiteSpace(ActiveBroker)) return brokers.FirstOrDefault();
 
         var key = ActiveBroker.Trim();
@@ -92,7 +92,9 @@ public class MqttOptions
         {
             var active = GetActiveBroker();
             if (active != null) return active.Id!;
-            return String.IsNullOrWhiteSpace(ActiveBroker) ? GetBrokers().FirstOrDefault()?.Id ?? MqttBrokerIds.Embedded : ActiveBroker.Trim();
+            return String.IsNullOrWhiteSpace(ActiveBroker)
+                ? GetBrokers().FirstOrDefault(e => e.Enable)?.Id ?? MqttBrokerIds.Embedded
+                : ActiveBroker.Trim();
         }
 
         return MqttBrokerIds.Embedded;
@@ -177,6 +179,9 @@ public class ExternalMqttOptions
 
     /// <summary>展示给设备的接入地址（界面接入信息），空表示与 Server 相同</summary>
     public String? PublicServer { get; set; }
+
+    /// <summary>是否启用。关闭后不作为平台默认，也不再为该配置建立平台客户端连接</summary>
+    public Boolean Enable { get; set; } = true;
 }
 
 /// <summary>演示配置</summary>

@@ -25,7 +25,7 @@ A single `dotnet run` starts the MQTT broker, the management API and UI, the rul
 | 5 | **Device grouping** | A tree of groups with direct and rolled-up device and online counts. Move devices in bulk; delete re-parents children. Rules can be scoped to a group including its sub-groups. |
 | 6 | **Rules / policies** | Triggers: Property, Event, Online, Offline. Scope by product, group or device. Conditions (`> >= < <= == != contains changed`) combined with All/Any. A silence period per device. Actions: `alarm`, `set-property`, `invoke-service` (device linkage), `webhook`, `mqtt-publish`, `log`. Templated parameters such as `{device.name}` and `{temperature}`, dry-run/execute test, execution logs, and alarm management with acknowledge/close. |
 | 7 | **Device statistics** | Real-time overview: devices, online rate, active/new today, messages today, messages in the last minute, downlinks, and alarms. Per-product stats. Hourly and daily trend buckets in the `DeviceStat` table, flushed every minute. History retention cleanup. |
-| 8 | **MQTT server** | Built-in NewLife.MQTT broker **and** named external brokers (Mosquitto/EMQX/HiveMQ) can run at the same time. Each MQTT device (or its product) picks a profile; unset falls back to the platform default (`Mode` / `ActiveBroker`). See [MQTT server](#mqtt-server-built-in-or-external). The built-in broker serves TCP and WebSocket (`/mqtt`), with device authentication (username = device code, password = secret). Downlink is published on the broker assigned to that device. |
+| 8 | **MQTT server** | Built-in NewLife.MQTT broker **and** named external brokers (Mosquitto/EMQX/HiveMQ) can run at the same time. Each MQTT device (or its product) picks a profile; unset falls back to the platform default (`Mode` / `ActiveBroker`). Operators can view and edit these settings on **系统 → MQTT 配置** (`/settings/mqtt`); environment variables still win. See [MQTT server](#mqtt-server-built-in-or-external). The built-in broker serves TCP and WebSocket (`/mqtt`), with device authentication (username = device code, password = secret). Downlink is published on the broker assigned to that device. |
 | 9 | **Device control** | Per-device control panel (typed property writes, service calls, live command status) and **batch control by product, group (with sub-groups) or selected devices**, with preview, per-device results and persisted jobs. |
 | 10 | **Multi-language UI** | Simplified Chinese (default) and English with a sidebar switcher. Uses standard ASP.NET Core localization (`IStringLocalizer`, `.resx`); see [Languages](#languages-i18n). |
 
@@ -116,6 +116,18 @@ iot/{productKey}/{deviceName}/service/invoke      # 下行
 ### 规则
 
 属性条件、事件名和 `set-property` 都使用物模型标识。默认模块直接写 `temperature`；自定义模块写 `batteryPack:health`；结构体子字段写 `geo.longitude`。事件触发可以引用该事件的输出参数。
+
+### MQTT 配置（管理界面）
+
+侧栏 **系统 → MQTT 配置**（`/settings/mqtt`）可查看和修改内置 Broker（启用、端口、匿名、管理账号/密码）以及外部 MQTT 服务器（增删改、启用/禁用、测试连接），并显示内置客户端数和每台外部服务器的连接状态。密码只写不读，页面上显示为 `••••`。整个管理界面按管理员使用设计，没有单独的登录页；生产环境请把 UI 放在 SSO / 反代认证之后，并为 `/api` 设置 `IoT:ApiKey`。
+
+优先级（页面上有说明）：
+
+1. 环境变量 `IoT__Mqtt__*`（或 `IoT:Mqtt:*`）——锁定对应字段，界面只读。设置了 `IoT__Mqtt__Brokers__*` 或 `IoT__Mqtt__External__*` 时，整个外部服务器列表只读。
+2. 界面保存的 `{DataPath}/Config/mqtt-ui.json`（Docker 中即 `/app/Data/Config/mqtt-ui.json`）。
+3. `appsettings.json` 默认值。
+
+保存空密码表示保持原密码。修改启用状态、端口、模式或管理端口会立即热重启内置 Broker（已连接设备会短暂断开）；管理账号/密码和外部服务器变更立即生效，外部连接按配置指纹重连。
 
 ### 访问记录
 
@@ -499,7 +511,7 @@ mosquitto_sub -h localhost -p 1883 -u admin -P admin123 -t 'iot/#' -v
 | down | `iot/{pk}/{dc}/service/invoke` | `{"id":123,"name":"reboot","params":{…}}` |
 | down | `iot/{pk}/{dc}/property/set` | `{"id":124,"params":{"switch":true}}` |
 
-Status: `curl localhost:5288/api/protocols/mqtt`, or **Protocols & MQTT** in the UI.
+Status: `curl localhost:5288/api/protocols/mqtt`, or **Protocols & MQTT** in the UI. Edit broker settings on **系统 → MQTT 配置** (`/settings/mqtt`).
 
 ---
 
@@ -566,7 +578,9 @@ Uplink is accepted only on the broker the device is assigned to (the device must
 
 `ActiveBroker` is only the **platform default** when `Mode=External` and the device/product leave the broker unset. An unknown `ActiveBroker` does not fall back to another profile.
 
-Changing `Mode`, `Brokers` or `ActiveBroker` is configuration-only (restart). Assigning a device or product to a profile that is not yet connected is picked up within about 15 seconds.
+The admin page **系统 → MQTT 配置** (`/settings/mqtt`) edits the same settings and persists them to `{DataPath}/Config/mqtt-ui.json`. Precedence is **environment variables `IoT__Mqtt__*` > UI file > `appsettings.json`**. A field set in the environment is shown as read-only. Empty password inputs keep the previously stored secret; passwords are never returned by `GET /api/settings/mqtt` or `GET /api/protocols/mqtt/config`.
+
+Changing Enable, Port, Mode or ManagementPort **restarts the built-in broker immediately** (connected devices drop briefly). Admin user/password and external-server add/edit/enable/disable apply immediately; the platform client reconnects when the profile fingerprint changes. Assigning a device or product to a profile that is not yet connected is picked up within about 15 seconds.
 
 Each profile supports these settings:
 
@@ -577,6 +591,7 @@ Each profile supports these settings:
 | `ClientId`, `UserName`, `Password` | The platform's own MQTT credentials on that broker. |
 | `UseTls`, `QoS` (0/1), `KeepAlive`, `ReconnectDelay` | Connection behaviour. The client reconnects automatically. |
 | `PublicServer` | Broker address shown to devices on the device connection page, if different from `Server`. |
+| `Enable` | When `false`, the profile is not the platform default and the platform does not open a client to it. Device assignments are kept. |
 | `TopicRoot` | Optional per-broker override of the global `IoT:Mqtt:TopicRoot`, e.g. `tenant-a/iot` on a shared broker. |
 
 ```bash
@@ -595,7 +610,7 @@ Environment keys such as `Brokers__1__Server` *merge into* the profile at the sa
 
 **Backward compatibility:** the older single `IoT:Mqtt:External { … }` block still works. When `Brokers` is empty it is used as the only profile, with `Id` `default`, and when `Brokers` has entries it is ignored.
 
-The Protocols & MQTT page lists **Embedded** and every external profile with connection state, last error and how many enabled MQTT devices resolve there. Passwords are never shown (only a "••••" marker). `GET /api/protocols/mqtt/config` returns `defaultBroker`, per-profile `running` / `deviceCount` / `hasPassword` (never the password). Device and product CRUD include `brokerProfileId`.
+The Protocols & MQTT page lists **Embedded** and every external profile with connection state, last error and how many enabled MQTT devices resolve there. Edit the catalog on **MQTT 配置**. Passwords are never shown (only a "••••" marker). `GET /api/protocols/mqtt/config` and `GET /api/settings/mqtt` return `defaultBroker`, per-profile `running` / `deviceCount` / `hasPassword` (never the password). `PUT /api/settings/mqtt` saves the built-in broker; `PUT/DELETE /api/settings/mqtt/brokers` maintains external servers; `POST /api/settings/mqtt/test` probes a connection. Device and product CRUD include `brokerProfileId`.
 
 **Mosquitto example** (`mosquitto.conf`): devices log in as their device code, and the platform has its own account.
 

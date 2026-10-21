@@ -38,6 +38,7 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
     private readonly ConcurrentDictionary<String, Session> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource? _cts;
     private Task? _reconcile;
+    private readonly SemaphoreSlim _gate = new(1, 1);
 
     public Boolean IsReady => _sessions.Values.Any(e => e.IsReady);
 
@@ -49,10 +50,8 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!options.Value.Mqtt.Enable) return Task.CompletedTask;
-
         _cts = new CancellationTokenSource();
-        Reconcile();
+        _ = ReconcileAsync(CancellationToken.None);
         _reconcile = Task.Run(() => ReconcileLoopAsync(_cts.Token), CancellationToken.None);
 
         return Task.CompletedTask;
@@ -76,35 +75,61 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
         {
             try { await Task.Delay(TimeSpan.FromSeconds(15), token); }
             catch (OperationCanceledException) { break; }
-            Reconcile();
+            await ReconcileAsync(token);
         }
     }
 
-    private void Reconcile()
+    /// <summary>立刻按当前配置对账：指纹变化则重连，未启用或不在用的会话关掉</summary>
+    public Task ReconcileNowAsync(CancellationToken cancellationToken = default) => ReconcileAsync(cancellationToken);
+
+    private async Task ReconcileAsync(CancellationToken token)
     {
-        var mqtt = options.Value.Mqtt;
-        if (!mqtt.Enable) return;
-
-        foreach (var id in catalog.RequiredIds().Where(e => !MqttBrokerIds.IsEmbedded(e)))
+        await _gate.WaitAsync(token);
+        try
         {
-            if (_sessions.ContainsKey(id)) continue;
+            var mqtt = options.Value.Mqtt;
+            var required = mqtt.Enable
+                ? catalog.RequiredIds().Where(e => !MqttBrokerIds.IsEmbedded(e)).ToHashSet(StringComparer.OrdinalIgnoreCase)
+                : new HashSet<String>(StringComparer.OrdinalIgnoreCase);
 
-            var profile = mqtt.FindBroker(id);
-            if (profile == null)
+            foreach (var kv in _sessions.ToArray())
             {
-                var missing = new Session(id, null, router, catalog);
-                missing.SetError($"Broker '{id}' is not defined in IoT:Mqtt:Brokers");
-                _sessions.TryAdd(id, missing);
-                XTrace.WriteLine("外部 MQTT：未找到服务器 {0}，可选：{1}", id, String.Join(", ", mqtt.GetBrokers().Select(e => e.Id)));
-                continue;
+                var profile = mqtt.FindBroker(kv.Key);
+                var fingerprint = profile == null ? null : MqttSettingsMerger.Fingerprint(profile);
+                var keep = required.Contains(kv.Key) && profile is { Enable: true } && kv.Value.Fingerprint == fingerprint;
+                if (keep) continue;
+
+                await kv.Value.StopAsync();
+                _sessions.TryRemove(kv.Key, out _);
             }
 
-            var session = new Session(profile.Id!, profile, router, catalog);
-            if (_sessions.TryAdd(profile.Id!, session))
+            if (!mqtt.Enable) return;
+
+            foreach (var id in required)
             {
-                XTrace.WriteLine("外部 MQTT：连接服务器 {0}（{1}）{2}", profile.Id, profile.Name ?? "-", profile.Server);
-                session.Start();
+                if (_sessions.ContainsKey(id)) continue;
+
+                var profile = mqtt.FindBroker(id);
+                if (profile == null || !profile.Enable)
+                {
+                    var missing = new Session(id, null, router, catalog);
+                    missing.SetError($"Broker '{id}' is not defined in IoT:Mqtt:Brokers");
+                    _sessions.TryAdd(id, missing);
+                    XTrace.WriteLine("外部 MQTT：未找到服务器 {0}，可选：{1}", id, String.Join(", ", mqtt.GetBrokers().Select(e => e.Id)));
+                    continue;
+                }
+
+                var session = new Session(profile.Id!, profile, router, catalog);
+                if (_sessions.TryAdd(profile.Id!, session))
+                {
+                    XTrace.WriteLine("外部 MQTT：连接服务器 {0}（{1}）{2}", profile.Id, profile.Name ?? "-", profile.Server);
+                    session.Start();
+                }
             }
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
@@ -154,6 +179,8 @@ public class ExternalMqttTransport(IOptions<IoTOptions> options, MqttUplinkRoute
 
     private sealed class Session(String id, ExternalMqttOptions? settings, MqttUplinkRouter router, MqttBrokerCatalog catalog)
     {
+        public String? Fingerprint { get; } = settings == null ? null : MqttSettingsMerger.Fingerprint(settings);
+
         private CancellationTokenSource? _cts;
         private Task? _loop;
         private MqttClient? _client;

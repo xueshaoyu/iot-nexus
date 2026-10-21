@@ -95,6 +95,7 @@ public class ProtocolsController(IMqttTransport mqtt, PayloadCodecFactory codecs
                     s.LastError,
                     s.MessagesReceived,
                     s.MessagesSent,
+                    enable = profile?.Enable ?? s.Kind == MqttModes.Embedded,
                     userName = profile?.UserName,
                     hasPassword = !String.IsNullOrEmpty(profile?.Password),
                     useTls = profile?.UseTls ?? false,

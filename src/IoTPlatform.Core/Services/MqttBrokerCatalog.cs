@@ -120,6 +120,13 @@ public class MqttBrokerCatalog(IOptions<IoTOptions> options)
                 set.Add(Resolve(device, product));
         }
 
+        foreach (var id in set.ToList())
+        {
+            if (MqttBrokerIds.IsEmbedded(id)) continue;
+            var profile = Mqtt.FindBroker(id);
+            if (profile == null || !profile.Enable) set.Remove(id);
+        }
+
         return set;
     }
 

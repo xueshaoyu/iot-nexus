@@ -18,6 +18,8 @@ public static class MqttServiceCollectionExtensions
         services.AddSingleton<MqttServerHost>();
         services.AddSingleton<ExternalMqttTransport>();
         services.AddSingleton<MqttBrokerHub>();
+        services.AddSingleton<IMqttRuntimeControl, MqttRuntimeControl>();
+        services.AddSingleton<MqttConnectionTester>();
         services.AddHostedService(sp => sp.GetRequiredService<MqttServerHost>());
         services.AddHostedService(sp => sp.GetRequiredService<ExternalMqttTransport>());
         services.AddSingleton<IMqttTransport>(sp => sp.GetRequiredService<MqttBrokerHub>());
