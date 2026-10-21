@@ -1,0 +1,440 @@
+@page "/settings/mqtt"
+@inherits PlatformPage
+@using IoTPlatform.Mqtt
+@inject MqttSettingsService Settings
+@inject IMqttTransport Mqtt
+@inject MqttServerHost EmbeddedMqtt
+@inject MqttConnectionTester Tester
+@inject Microsoft.Extensions.Options.IOptions<IoTPlatform.IoTOptions> Options
+
+<PageTitle>@L["MQTT configuration"] · @L["NewLife IoT"]</PageTitle>
+
+<div class="page-header">
+    <div>
+        <h1>@L["MQTT configuration"]</h1>
+        <p>@L["View and edit the built-in broker and the external MQTT servers used for per-device broker selection. This page is for administrators."]</p>
+    </div>
+    <a class="btn" href="protocols">@L["Protocols & MQTT"]</a>
+</div>
+
+<div class="alert-banner mb"><Icon Name="layers" Size="16" /> <span>@L["Precedence: environment variables (IoT__Mqtt__*) override values saved on this page, which override appsettings.json. Fields locked by an environment variable are read-only."]</span></div>
+<div class="alert-banner warn mb"><Icon Name="alert" Size="16" /> <span>@L["Changing Enable, Port, Mode or ManagementPort restarts the built-in broker; connected devices drop briefly. Admin account, password and external-server changes apply immediately (hot reload)."]</span></div>
+
+<div class="grid grid-4 mb">
+    <StatCard Label="@L["Built-in broker"]" Value="@(_embedded.Running ? L["Running"].Value : L["stopped"].Value)" Sub="@L["{0} client(s) · port {1}", _embedded.ConnectedClients, _embedded.Port]" IconName="server" Tone="@(_embedded.Running ? "success" : "danger")" />
+    <StatCard Label="@L["Connected clients"]" Value="@_embedded.ConnectedClients.ToString()" Sub="@L["embedded broker · {0} total connections", _embedded.TotalConnections]" IconName="wifi" Tone="primary" />
+    <StatCard Label="@L["External MQTT servers"]" Value="@($"{_brokers.Count(e => e.Kind == MqttModes.External && e.Running)} / {_brokers.Count(e => e.Kind == MqttModes.External)}")" Sub="@L["connected / configured"]" IconName="radio" Tone="info" />
+    <StatCard Label="@L["platform default"]" Value="@DefaultBroker" Sub="@(IsExternal ? L["Mode: External"].Value : L["Mode: Embedded"].Value)" IconName="layers" />
+</div>
+
+<div class="card mb">
+    <div class="card-header">
+        <h3>@L["Built-in broker"]</h3>
+        @if (Locked("Enable") || Locked("Port") || Locked("Mode"))
+        {
+            <span class="badge warning">@L["Some fields are locked by environment variables"]</span>
+        }
+    </div>
+    <div class="card-body">
+        <div class="form-grid">
+            <div class="field">
+                <label class="check"><input type="checkbox" @bind="_form.Enable" disabled="@Locked("Enable")" /> @L["Enable MQTT"]</label>
+                <span class="hint">@Hint("Enable", L["Turn off to stop the built-in broker and all external platform clients."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Platform mode"] @LockBadge("Mode")</label>
+                <select class="select" @bind="_form.Mode" disabled="@Locked("Mode")">
+                    <option value="@MqttModes.Embedded">@L["Embedded — built-in broker is the platform default"]</option>
+                    <option value="@MqttModes.External">@L["External — ActiveBroker (or the first enabled server) is the platform default"]</option>
+                </select>
+                <span class="hint">@L["Devices and products can still pick a different broker."]</span>
+            </div>
+            <div class="field">
+                <label>@L["Listen port"] @LockBadge("Port")</label>
+                <input class="input mono" type="number" min="1" max="65535" @bind="_form.Port" disabled="@Locked("Port")" />
+                <span class="hint">@Hint("Port", L["TCP and WebSocket (/mqtt) share this port. Changing it restarts the broker."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Management port"] @LockBadge("ManagementPort")</label>
+                <input class="input mono" type="number" min="0" max="65535" @bind="_form.ManagementPort" disabled="@Locked("ManagementPort")" />
+                <span class="hint">@Hint("ManagementPort", L["NewLife.MQTT management API. 0 disables it."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Topic root"] @LockBadge("TopicRoot")</label>
+                <input class="input mono" @bind="_form.TopicRoot" disabled="@Locked("TopicRoot")" />
+                <span class="hint">@Hint("TopicRoot", L["Device topics are {TopicRoot}/{productKey}/{deviceCode}/…"])</span>
+            </div>
+            <div class="field">
+                <label>@L["Public host"] @LockBadge("PublicHost")</label>
+                <input class="input mono" @bind="_form.PublicHost" placeholder="mqtt.example.com" disabled="@Locked("PublicHost")" />
+                <span class="hint">@Hint("PublicHost", L["Shown on the device connection page. Empty uses the current host."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Platform default external server"] @LockBadge("ActiveBroker")</label>
+                <select class="select" @bind="_form.ActiveBroker" disabled="@Locked("ActiveBroker")">
+                    <option value="">@L["First enabled external server"]</option>
+                    @foreach (var b in Options.Value.Mqtt.GetBrokers())
+                    {
+                        <option value="@b.Id">@(String.IsNullOrEmpty(b.Name) ? b.Id : $"{b.Name} ({b.Id})") @(b.Enable ? "" : $" — {L["Disabled"]}")</option>
+                    }
+                </select>
+                <span class="hint">@Hint("ActiveBroker", L["Used when Mode is External and the device/product leave the broker unset."])</span>
+            </div>
+            <div class="field">
+                <label class="check"><input type="checkbox" @bind="_form.AllowAnonymous" disabled="@Locked("AllowAnonymous")" /> @L["Allow anonymous connections"]</label>
+                <span class="hint">@Hint("AllowAnonymous", L["Anonymous clients on the built-in broker may only use $SYS and public topics."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Admin user"] @LockBadge("AdminUser")</label>
+                <input class="input" @bind="_form.AdminUser" disabled="@Locked("AdminUser")" autocomplete="off" />
+                <span class="hint">@Hint("AdminUser", L["May subscribe and publish any topic on the built-in broker. Empty disables the account."])</span>
+            </div>
+            <div class="field">
+                <label>@L["Admin password"] @LockBadge("AdminPassword")</label>
+                <input class="input" type="password" @bind="_form.AdminPassword" placeholder="@(_hasAdminPassword ? "••••••••" : "")" disabled="@Locked("AdminPassword")" autocomplete="new-password" />
+                <span class="hint">@Hint("AdminPassword", _hasAdminPassword ? L["Leave empty to keep the current password. The password is never shown."] : L["No password is set."])</span>
+            </div>
+        </div>
+        <div class="row mt">
+            <button class="btn btn-primary" @onclick="SaveBuiltIn" disabled="@_saving">@L["Save built-in settings"]</button>
+            <span class="muted small">@L["Saved to {0}", Settings.StorePath]</span>
+        </div>
+    </div>
+</div>
+
+<div class="card mb">
+    <div class="card-header">
+        <h3>@L["External MQTT servers"] <span class="sub">@L["used when a device or product selects this profile"]</span></h3>
+        <button class="btn btn-sm btn-primary" @onclick="BeginAdd" disabled="@Settings.BrokersLocked">@L["Add server"]</button>
+    </div>
+    @if (Settings.BrokersLocked)
+    {
+        <div class="alert-banner warn" style="margin:12px 16px 0"><Icon Name="alert" Size="16" /> <span>@L["The external-server list is locked because IoT__Mqtt__Brokers or IoT__Mqtt__External is set in the environment."]</span></div>
+    }
+    @if (!Options.Value.Mqtt.GetBrokers().Any())
+    {
+        <EmptyState Title="@L["No external MQTT servers"]" Text="@L["Add Mosquitto, EMQX or HiveMQ so a device can pick it as its broker."]" IconName="radio" />
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>@L["Id"]</th>
+                        <th>@L["Name"]</th>
+                        <th>@L["Server"]</th>
+                        <th class="hide-sm">@L["Topic root"]</th>
+                        <th>@L["Enabled"]</th>
+                        <th>@L["Status"]</th>
+                        <th>@L["Devices"]</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var b in Options.Value.Mqtt.GetBrokers())
+                    {
+                        var snap = _brokers.FirstOrDefault(e => e.Id.Equals(b.Id, StringComparison.OrdinalIgnoreCase));
+                        <tr>
+                            <td class="mono">@b.Id @if (b.Id == DefaultBroker && IsExternal) { <span class="badge">@L["default"]</span> }</td>
+                            <td>@(String.IsNullOrEmpty(b.Name) ? b.Id : b.Name)</td>
+                            <td class="mono small">@b.Server @(b.UseTls ? "(TLS)" : "") @if (!String.IsNullOrEmpty(b.Password)) { <span class="muted">· ••••</span> }</td>
+                            <td class="hide-sm mono small">@(String.IsNullOrEmpty(b.TopicRoot) ? Options.Value.Mqtt.TopicRoot : b.TopicRoot)</td>
+                            <td>
+                                <label class="check">
+                                    <input type="checkbox" checked="@b.Enable" disabled="@Settings.BrokersLocked" @onchange="() => ToggleBroker(b.Id!, !b.Enable)" />
+                                </label>
+                            </td>
+                            <td class="nowrap">
+                                @if (snap?.Running == true)
+                                {
+                                    <span class="badge success"><span class="dot on"></span>@L["connected"]</span>
+                                }
+                                else if (snap?.InUse == true)
+                                {
+                                    <span class="badge danger"><span class="dot off"></span>@L["disconnected"]</span>
+                                }
+                                else
+                                {
+                                    <span class="badge">@L["idle"]</span>
+                                }
+                                @if (!String.IsNullOrEmpty(snap?.LastError) && snap?.Running != true)
+                                {
+                                    <span class="sub">@Fmt.Text(snap!.LastError)</span>
+                                }
+                            </td>
+                            <td>@(snap?.DeviceCount ?? 0)</td>
+                            <td class="nowrap">
+                                <button class="btn btn-sm" @onclick="() => TestExisting(b)" disabled="@_testing">@L["Test connection"]</button>
+                                <button class="btn btn-sm" @onclick="() => BeginEdit(b)" disabled="@Settings.BrokersLocked">@L["Edit"]</button>
+                                <button class="btn btn-sm btn-ghost" @onclick="() => DeleteBroker(b.Id!)" disabled="@Settings.BrokersLocked">@L["Delete"]</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@if (_embedded.Running && _embedded.Clients.Count > 0)
+{
+    <div class="card mb">
+        <div class="card-header"><h3>@L["Connected clients"]</h3><span class="muted small">@_embedded.Clients.Count · @L["embedded"]</span></div>
+        <div class="card-body">
+            <div class="row">
+                @foreach (var c in _embedded.Clients.OrderBy(e => e))
+                {
+                    var device = Device.FindByCode(c);
+                    @if (device != null)
+                    {
+                        <a class="badge success" href="devices/@device.Id"><span class="dot on"></span>@c</a>
+                    }
+                    else
+                    {
+                        <span class="badge"><span class="dot"></span>@c</span>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<Modal @bind-Show="_showEditor" Title="@(_editingId == null ? L["Add external MQTT server"] : L["Edit external MQTT server"])" Size="lg">
+    <div class="form-grid">
+        <div class="field">
+            <label>@L["Id"]</label>
+            <input class="input mono" @bind="_broker.Id" disabled="@(_editingId != null)" placeholder="mosquitto" />
+            <span class="hint">@L["Letters, digits, hyphen and underscore. Cannot be “embedded”."]</span>
+        </div>
+        <div class="field">
+            <label>@L["Name"]</label>
+            <input class="input" @bind="_broker.Name" placeholder="@L["Local Mosquitto"]" />
+        </div>
+        <div class="field full">
+            <label>@L["Server"]</label>
+            <input class="input mono" @bind="_broker.Server" placeholder="tcp://127.0.0.1:1883" />
+            <span class="hint">@L["Example: tcp://host:1883. Use port 8883 with TLS enabled."]</span>
+        </div>
+        <div class="field">
+            <label>@L["ClientId"]</label>
+            <input class="input mono" @bind="_broker.ClientId" />
+        </div>
+        <div class="field">
+            <label>@L["Topic prefix"]</label>
+            <input class="input mono" @bind="_broker.TopicRoot" placeholder="@L["empty = global topic root"]" />
+        </div>
+        <div class="field">
+            <label>@L["Username"]</label>
+            <input class="input" @bind="_broker.UserName" autocomplete="off" />
+        </div>
+        <div class="field">
+            <label>@L["Password"]</label>
+            <input class="input" type="password" @bind="_broker.Password" placeholder="@(_brokerHasPassword ? "••••••••" : "")" autocomplete="new-password" />
+            <span class="hint">@L["Leave empty to keep the current password. The password is never shown."]</span>
+        </div>
+        <div class="field">
+            <label>@L["Public server"]</label>
+            <input class="input mono" @bind="_broker.PublicServer" placeholder="@L["shown to devices, optional"]" />
+        </div>
+        <div class="field">
+            <label>@L["QoS"]</label>
+            <InputNumber class="input" @bind-Value="_broker.QoS" />
+        </div>
+        <div class="field">
+            <label>@L["Keep-alive (s)"]</label>
+            <input class="input" type="number" min="5" @bind="_broker.KeepAlive" />
+        </div>
+        <div class="field">
+            <label>@L["Reconnect delay (s)"]</label>
+            <input class="input" type="number" min="1" @bind="_broker.ReconnectDelay" />
+        </div>
+        <div class="field">
+            <label class="check"><input type="checkbox" @bind="_broker.UseTls" /> @L["Use TLS"]</label>
+        </div>
+        <div class="field">
+            <label class="check"><input type="checkbox" @bind="_broker.Enable" /> @L["Enabled"]</label>
+        </div>
+    </div>
+    @if (_testMessage != null)
+    {
+        <div class="alert-banner @(_testOk ? "" : "warn") mt">@(_testOk ? L["Connection succeeded in {0} ms", _testMs] : L["Connection failed: {0}", _testMessage])</div>
+    }
+    <div class="row mt">
+        <button class="btn" type="button" @onclick="TestEditor" disabled="@_testing">@L["Test connection"]</button>
+        <button class="btn btn-primary" type="button" @onclick="SaveBroker" disabled="@_saving">@L["Save"]</button>
+        <button class="btn btn-ghost" type="button" @onclick="() => _showEditor = false">@L["Cancel"]</button>
+    </div>
+</Modal>
+
+@code {
+    private MqttBuiltInInput _form = new();
+    private MqttBrokerInput _broker = new();
+    private MqttStatus _embedded = default!;
+    private IReadOnlyList<MqttBrokerSnapshot> _brokers = [];
+    private bool _hasAdminPassword;
+    private bool _brokerHasPassword;
+    private bool _showEditor;
+    private string? _editingId;
+    private bool _saving;
+    private bool _testing;
+    private bool _testOk;
+    private string? _testMessage;
+    private int _testMs;
+
+    private bool IsExternal => String.Equals(Options.Value.Mqtt.Mode, MqttModes.External, StringComparison.OrdinalIgnoreCase);
+    private string DefaultBroker => Options.Value.Mqtt.GetPlatformDefaultId();
+    private bool Locked(string field) => Settings.IsLocked(field);
+
+    protected override void OnInitialized()
+    {
+        Load();
+        AutoRefresh(TimeSpan.FromSeconds(5), () => { RefreshStatus(); return Task.CompletedTask; });
+    }
+
+    private void Load()
+    {
+        var o = Options.Value.Mqtt;
+        _form = new MqttBuiltInInput
+        {
+            Enable = o.Enable,
+            Mode = o.Mode,
+            TopicRoot = o.TopicRoot,
+            ActiveBroker = o.ActiveBroker,
+            Port = o.Port,
+            PublicHost = o.PublicHost,
+            AdminUser = o.AdminUser,
+            AdminPassword = "",
+            AllowAnonymous = o.AllowAnonymous,
+            ManagementPort = o.ManagementPort,
+        };
+        _hasAdminPassword = Settings.HasAdminPassword();
+        RefreshStatus();
+    }
+
+    private void RefreshStatus()
+    {
+        _embedded = EmbeddedMqtt.GetStatus();
+        _brokers = Mqtt.GetBrokers();
+    }
+
+    private RenderFragment LockBadge(string field) => builder =>
+    {
+        if (!Locked(field)) return;
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "badge warning");
+        builder.AddContent(2, L["env"]);
+        builder.CloseElement();
+    };
+
+    private string Hint(string field, Microsoft.Extensions.Localization.LocalizedString text) =>
+        Locked(field) ? L["Locked by environment variable {0}", $"IoT__Mqtt__{field}"] : text.Value;
+
+    private async Task SaveBuiltIn()
+    {
+        _saving = true;
+        await Run(async () =>
+        {
+            await Settings.SaveBuiltInAsync(_form);
+            _form.AdminPassword = "";
+            Load();
+        }, L["MQTT settings saved"]);
+        _saving = false;
+    }
+
+    private void BeginAdd()
+    {
+        _editingId = null;
+        _broker = new MqttBrokerInput();
+        _brokerHasPassword = false;
+        _testMessage = null;
+        _showEditor = true;
+    }
+
+    private void BeginEdit(ExternalMqttOptions b)
+    {
+        _editingId = b.Id;
+        _broker = new MqttBrokerInput
+        {
+            Id = b.Id,
+            Name = b.Name,
+            TopicRoot = b.TopicRoot,
+            Server = b.Server,
+            ClientId = b.ClientId,
+            UserName = b.UserName,
+            Password = "",
+            UseTls = b.UseTls,
+            QoS = b.QoS,
+            KeepAlive = b.KeepAlive,
+            ReconnectDelay = b.ReconnectDelay,
+            PublicServer = b.PublicServer,
+            Enable = b.Enable,
+        };
+        _brokerHasPassword = Settings.BrokerHasPassword(b.Id);
+        _testMessage = null;
+        _showEditor = true;
+    }
+
+    private async Task SaveBroker()
+    {
+        _saving = true;
+        await Run(async () =>
+        {
+            await Settings.UpsertBrokerAsync(_broker);
+            _showEditor = false;
+            Load();
+        }, L["External MQTT server saved"]);
+        _saving = false;
+    }
+
+    private async Task DeleteBroker(string id)
+    {
+        if (!await Confirm(L["Delete MQTT broker {0}?", id])) return;
+        await Run(async () =>
+        {
+            await Settings.DeleteBrokerAsync(id);
+            Load();
+        }, L["External MQTT server deleted"]);
+    }
+
+    private async Task ToggleBroker(string id, bool enable)
+    {
+        await Run(async () =>
+        {
+            await Settings.SetBrokerEnabledAsync(id, enable);
+            Load();
+        });
+    }
+
+    private async Task TestExisting(ExternalMqttOptions b)
+    {
+        await TestCore(new MqttBrokerInput
+        {
+            Id = b.Id,
+            Server = b.Server,
+            ClientId = b.ClientId,
+            UserName = b.UserName,
+            UseTls = b.UseTls,
+            KeepAlive = b.KeepAlive,
+        });
+    }
+
+    private Task TestEditor() => TestCore(_broker);
+
+    private async Task TestCore(MqttBrokerInput input)
+    {
+        _testing = true;
+        _testMessage = null;
+        await Run(async () =>
+        {
+            var broker = Settings.ResolveForTest(input);
+            var result = await Tester.TestAsync(broker);
+            _testOk = result.Ok;
+            _testMs = result.ElapsedMs;
+            _testMessage = result.Ok ? "ok" : result.Error;
+            if (result.Ok) Toasts.Success(L["Connected to {0} in {1} ms", result.Server, result.ElapsedMs]);
+            else Toasts.Error(L["Connection failed: {0}", result.Error ?? ""]);
+        });
+        _testing = false;
+    }
+}

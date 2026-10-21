@@ -860,4 +860,84 @@
   <data name="No access logs" xml:space="preserve"><value>没有访问记录</value></data>
   <data name="Duration" xml:space="preserve"><value>耗时</value></data>
   <data name="Bot" xml:space="preserve"><value>爬虫</value></data>
+  <data name="System" xml:space="preserve"><value>系统</value></data>
+  <data name="MQTT configuration" xml:space="preserve"><value>MQTT 配置</value></data>
+  <data name="View and edit the built-in broker and the external MQTT servers used for per-device broker selection. This page is for administrators." xml:space="preserve"><value>查看并修改内置 Broker 以及设备选用的外部 MQTT 服务器。本页仅供管理员使用。</value></data>
+  <data name="Precedence: environment variables (IoT__Mqtt__*) override values saved on this page, which override appsettings.json. Fields locked by an environment variable are read-only." xml:space="preserve"><value>优先级：环境变量 IoT__Mqtt__* 优先于本页保存的值，再优先于 appsettings.json。被环境变量锁定的项为只读。</value></data>
+  <data name="Changing Enable, Port, Mode or ManagementPort restarts the built-in broker; connected devices drop briefly. Admin account, password and external-server changes apply immediately (hot reload)." xml:space="preserve"><value>修改启用状态、端口、模式或管理端口会重启内置 Broker，已连接设备会短暂断开。管理账号、密码和外部服务器的变更立即生效（热更新）。</value></data>
+  <data name="Running" xml:space="preserve"><value>运行中</value></data>
+  <data name="{0} client(s) · port {1}" xml:space="preserve"><value>{0} 个客户端 · 端口 {1}</value></data>
+  <data name="External MQTT servers" xml:space="preserve"><value>外部 MQTT 服务器</value></data>
+  <data name="connected / configured" xml:space="preserve"><value>已连接 / 已配置</value></data>
+  <data name="Mode: External" xml:space="preserve"><value>模式：外部</value></data>
+  <data name="Mode: Embedded" xml:space="preserve"><value>模式：内置</value></data>
+  <data name="Some fields are locked by environment variables" xml:space="preserve"><value>部分字段已被环境变量锁定</value></data>
+  <data name="Enable MQTT" xml:space="preserve"><value>启用 MQTT</value></data>
+  <data name="Turn off to stop the built-in broker and all external platform clients." xml:space="preserve"><value>关闭后将停止内置 Broker，并断开平台到外部服务器的客户端连接。</value></data>
+  <data name="Platform mode" xml:space="preserve"><value>平台模式</value></data>
+  <data name="Embedded — built-in broker is the platform default" xml:space="preserve"><value>内置 — 平台默认使用内置 Broker</value></data>
+  <data name="External — ActiveBroker (or the first enabled server) is the platform default" xml:space="preserve"><value>外部 — 平台默认使用 ActiveBroker（或第一台已启用的外部服务器）</value></data>
+  <data name="Devices and products can still pick a different broker." xml:space="preserve"><value>设备和产品仍可单独指定其它服务器。</value></data>
+  <data name="Listen port" xml:space="preserve"><value>监听端口</value></data>
+  <data name="TCP and WebSocket (/mqtt) share this port. Changing it restarts the broker." xml:space="preserve"><value>TCP 与 WebSocket（/mqtt）共用此端口。修改后会重启内置 Broker。</value></data>
+  <data name="Management port" xml:space="preserve"><value>管理端口</value></data>
+  <data name="NewLife.MQTT management API. 0 disables it." xml:space="preserve"><value>NewLife.MQTT 管理接口。0 表示关闭。</value></data>
+  <data name="Device topics are {TopicRoot}/{productKey}/{deviceCode}/…" xml:space="preserve"><value>设备主题为 {TopicRoot}/{productKey}/{deviceCode}/…</value></data>
+  <data name="Public host" xml:space="preserve"><value>对外公布地址</value></data>
+  <data name="Shown on the device connection page. Empty uses the current host." xml:space="preserve"><value>显示在设备接入说明中。留空则使用当前主机名。</value></data>
+  <data name="Platform default external server" xml:space="preserve"><value>平台默认外部服务器</value></data>
+  <data name="First enabled external server" xml:space="preserve"><value>第一台已启用的外部服务器</value></data>
+  <data name="Used when Mode is External and the device/product leave the broker unset." xml:space="preserve"><value>仅在模式为 External，且设备与产品都未指定服务器时使用。</value></data>
+  <data name="Allow anonymous connections" xml:space="preserve"><value>允许匿名连接</value></data>
+  <data name="Anonymous clients on the built-in broker may only use $SYS and public topics." xml:space="preserve"><value>内置 Broker 上的匿名客户端只能使用 $SYS 与公共主题。</value></data>
+  <data name="Admin user" xml:space="preserve"><value>管理账号</value></data>
+  <data name="May subscribe and publish any topic on the built-in broker. Empty disables the account." xml:space="preserve"><value>可在内置 Broker 上订阅和发布任意主题。留空表示关闭管理账号。</value></data>
+  <data name="Admin password" xml:space="preserve"><value>管理密码</value></data>
+  <data name="Leave empty to keep the current password. The password is never shown." xml:space="preserve"><value>留空表示保持原密码。密码不会以明文显示。</value></data>
+  <data name="No password is set." xml:space="preserve"><value>尚未设置密码。</value></data>
+  <data name="Save built-in settings" xml:space="preserve"><value>保存内置设置</value></data>
+  <data name="Saved to {0}" xml:space="preserve"><value>已保存到 {0}</value></data>
+  <data name="used when a device or product selects this profile" xml:space="preserve"><value>设备或产品选用该配置时使用</value></data>
+  <data name="Add server" xml:space="preserve"><value>添加服务器</value></data>
+  <data name="The external-server list is locked because IoT__Mqtt__Brokers or IoT__Mqtt__External is set in the environment." xml:space="preserve"><value>外部服务器列表已被锁定：环境中设置了 IoT__Mqtt__Brokers 或 IoT__Mqtt__External。</value></data>
+  <data name="No external MQTT servers" xml:space="preserve"><value>没有外部 MQTT 服务器</value></data>
+  <data name="Add Mosquitto, EMQX or HiveMQ so a device can pick it as its broker." xml:space="preserve"><value>添加 Mosquitto、EMQX 或 HiveMQ，供设备选择作为接入服务器。</value></data>
+  <data name="Test connection" xml:space="preserve"><value>测试连接</value></data>
+  <data name="Add external MQTT server" xml:space="preserve"><value>添加外部 MQTT 服务器</value></data>
+  <data name="Edit external MQTT server" xml:space="preserve"><value>编辑外部 MQTT 服务器</value></data>
+  <data name="Letters, digits, hyphen and underscore. Cannot be “embedded”." xml:space="preserve"><value>字母、数字、连字符和下划线。不能使用 embedded。</value></data>
+  <data name="Local Mosquitto" xml:space="preserve"><value>本地 Mosquitto</value></data>
+  <data name="Example: tcp://host:1883. Use port 8883 with TLS enabled." xml:space="preserve"><value>例如 tcp://host:1883。启用 TLS 时常用 8883 端口。</value></data>
+  <data name="ClientId" xml:space="preserve"><value>ClientId</value></data>
+  <data name="Topic prefix" xml:space="preserve"><value>主题前缀</value></data>
+  <data name="empty = global topic root" xml:space="preserve"><value>空表示使用全局主题根</value></data>
+  <data name="Public server" xml:space="preserve"><value>对外接入地址</value></data>
+  <data name="shown to devices, optional" xml:space="preserve"><value>展示给设备，可选</value></data>
+  <data name="Keep-alive (s)" xml:space="preserve"><value>心跳间隔（秒）</value></data>
+  <data name="Reconnect delay (s)" xml:space="preserve"><value>重连间隔（秒）</value></data>
+  <data name="Use TLS" xml:space="preserve"><value>使用 TLS</value></data>
+  <data name="Connection succeeded in {0} ms" xml:space="preserve"><value>连接成功，耗时 {0} 毫秒</value></data>
+  <data name="Connection failed: {0}" xml:space="preserve"><value>连接失败：{0}</value></data>
+  <data name="env" xml:space="preserve"><value>环境变量</value></data>
+  <data name="Locked by environment variable {0}" xml:space="preserve"><value>已被环境变量 {0} 锁定</value></data>
+  <data name="MQTT settings saved" xml:space="preserve"><value>MQTT 设置已保存</value></data>
+  <data name="External MQTT server saved" xml:space="preserve"><value>外部 MQTT 服务器已保存</value></data>
+  <data name="Delete MQTT broker {0}?" xml:space="preserve"><value>删除 MQTT 服务器 {0}？</value></data>
+  <data name="External MQTT server deleted" xml:space="preserve"><value>外部 MQTT 服务器已删除</value></data>
+  <data name="Connected to {0} in {1} ms" xml:space="preserve"><value>已连接到 {0}，耗时 {1} 毫秒</value></data>
+  <data name="Broker profiles are edited on MQTT configuration. Passwords are never shown. Device assignment is edited on the product or device page." xml:space="preserve"><value>外部服务器在「MQTT 配置」页维护。密码不会显示。设备选用在产品或设备页修改。</value></data>
+  <data name="MQTT UI settings file is invalid: {0}" xml:space="preserve"><value>MQTT 界面配置文件无效：{0}</value></data>
+  <data name="MQTT broker list is locked by environment variables" xml:space="preserve"><value>外部 MQTT 服务器列表已被环境变量锁定</value></data>
+  <data name="MQTT broker '{0}' already exists" xml:space="preserve"><value>MQTT 服务器「{0}」已存在</value></data>
+  <data name="MQTT broker '{0}' not found" xml:space="preserve"><value>MQTT 服务器「{0}」不存在</value></data>
+  <data name="Cannot change MQTT setting '{0}' because it is set by an environment variable" xml:space="preserve"><value>无法修改 MQTT 设置「{0}」，因为它由环境变量指定</value></data>
+  <data name="MQTT port must be between 1 and 65535" xml:space="preserve"><value>MQTT 端口必须在 1 到 65535 之间</value></data>
+  <data name="MQTT management port must be between 0 and 65535" xml:space="preserve"><value>MQTT 管理端口必须在 0 到 65535 之间</value></data>
+  <data name="MQTT mode must be Embedded or External" xml:space="preserve"><value>MQTT 模式只能是 Embedded 或 External</value></data>
+  <data name="MQTT broker id '{0}' is reserved" xml:space="preserve"><value>MQTT 服务器标识「{0}」为保留值</value></data>
+  <data name="MQTT broker id '{0}' is invalid" xml:space="preserve"><value>MQTT 服务器标识「{0}」不合法</value></data>
+  <data name="MQTT broker server is required" xml:space="preserve"><value>MQTT 服务器地址不能为空</value></data>
+  <data name="MQTT QoS must be 0 or 1" xml:space="preserve"><value>MQTT QoS 只能是 0 或 1</value></data>
+  <data name="MQTT keep-alive must be at least 5 seconds" xml:space="preserve"><value>MQTT 心跳间隔至少 5 秒</value></data>
+  <data name="MQTT reconnect delay must be at least 1 second" xml:space="preserve"><value>MQTT 重连间隔至少 1 秒</value></data>
 </root>

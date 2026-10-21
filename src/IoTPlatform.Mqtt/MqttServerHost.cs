@@ -28,11 +28,12 @@ public class MqttServerHost(IServiceProvider serviceProvider, IOptions<IoTOption
 
     private CancellationTokenSource? _cts;
     private Task? _reconcile;
+    private readonly Object _gate = new();
+    private Int32 _startedPort;
+    private Int32 _startedManagementPort;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!options.Value.Mqtt.Enable) return Task.CompletedTask;
-
         TryStart();
         _cts = new CancellationTokenSource();
         _reconcile = Task.Run(() => ReconcileLoopAsync(_cts.Token), CancellationToken.None);
@@ -46,8 +47,37 @@ public class MqttServerHost(IServiceProvider serviceProvider, IOptions<IoTOption
         {
             try { await Task.Delay(TimeSpan.FromSeconds(15), token); }
             catch (OperationCanceledException) { break; }
+            lock (_gate) TryStart();
+        }
+    }
+
+    /// <summary>按当前配置热重启：端口/管理端口/启用变化时停掉再开；不再需要时停止</summary>
+    public void Restart()
+    {
+        lock (_gate)
+        {
+            var mqtt = options.Value.Mqtt;
+            var shouldRun = mqtt.Enable && catalog.RequiredIds().Contains(MqttBrokerIds.Embedded);
+            if (!shouldRun)
+            {
+                StopServer("MQTT settings changed");
+                return;
+            }
+
+            if (Server != null && _startedPort == mqtt.Port && _startedManagementPort == mqtt.ManagementPort)
+                return;
+
+            StopServer("MQTT settings changed");
             TryStart();
         }
+    }
+
+    private void StopServer(String reason)
+    {
+        Server?.Stop(reason);
+        Server = null;
+        _startedPort = 0;
+        _startedManagementPort = 0;
     }
 
     private void TryStart()
@@ -68,6 +98,8 @@ public class MqttServerHost(IServiceProvider serviceProvider, IOptions<IoTOption
 
         server.Start();
         Server = server;
+        _startedPort = opt.Port;
+        _startedManagementPort = opt.ManagementPort;
         XTrace.WriteLine("MQTT 服务端已启动 tcp://0.0.0.0:{0} (WebSocket ws://0.0.0.0:{0}/mqtt)", opt.Port);
     }
 
@@ -81,8 +113,7 @@ public class MqttServerHost(IServiceProvider serviceProvider, IOptions<IoTOption
             _cts = null;
         }
 
-        Server?.Stop("Platform stopping");
-        Server = null;
+        lock (_gate) StopServer("Platform stopping");
     }
 
     public Task<Boolean> PublishAsync(String topic, Byte[] payload, QualityOfService qos = QualityOfService.AtLeastOnce, Boolean retain = false, CancellationToken cancellationToken = default)
